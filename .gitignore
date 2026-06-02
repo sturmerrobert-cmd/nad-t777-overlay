@@ -3,6 +3,9 @@ node_modules/
 .env.*
 !.env.example
 dist/
+build-exe/
+dist-docs/
+apps/api/src/embedded-web.generated.ts
 data/
 *.jsonl
 *.tsbuildinfo

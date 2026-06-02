@@ -9,5 +9,10 @@
   "scripts": {
     "probe": "pnpm --filter @nad/api probe"
   },
-  "packageManager": "pnpm@11.1.2"
+  "packageManager": "pnpm@11.1.2",
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.20.0",
+    "esbuild": "^0.28.0",
+    "pdf-lib": "^1.17.1"
+  }
 }
