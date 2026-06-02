@@ -57,6 +57,29 @@ function probeNad(ip: string, timeoutMs: number): Promise<string | null> {
 }
 
 /**
+ * Probe whether a TCP port is open on a host (connect-only, no I/O).
+ *
+ * Used to detect the Dirac Live control port (:5006), which only the later
+ * Dirac-equipped NAD models expose. Resolves true on a successful connect.
+ */
+export function probeTcpOpen(host: string, port: number, timeoutMs = 800): Promise<boolean> {
+  return new Promise((resolve) => {
+    let done = false;
+    const sock = net.createConnection({ host, port });
+    const finish = (v: boolean) => {
+      if (done) return;
+      done = true;
+      sock.destroy();
+      resolve(v);
+    };
+    sock.setTimeout(timeoutMs);
+    sock.on('timeout', () => finish(false));
+    sock.on('error', () => finish(false));
+    sock.on('connect', () => finish(true));
+  });
+}
+
+/**
  * Scan the local subnet(s) for a NAD. Resolves to the first responder, or null.
  * Scans in batches to bound the number of concurrent sockets.
  */

@@ -10,6 +10,9 @@ import type { VolumeService } from './volume/service.js';
 import type { UsageLogger } from './usage/logger.js';
 import type { TrackLogger } from './tracks/logger.js';
 import type { AppConfig } from './config.js';
+import { computeCapabilities } from './nad/capabilities.js';
+import { getAliased } from './nad/aliases.js';
+import { probeTcpOpen } from './discover.js';
 import {
   DEFAULT_SOURCE_NAMES,
   type AppState,
@@ -17,6 +20,11 @@ import {
   type TunerState,
   type Zone2State,
 } from './types.js';
+
+/** Dirac Live control port; only Dirac-equipped models open it. */
+const DIRAC_PORT = 5006;
+/** How long after connect to keep probing before "no answer" ⇒ unsupported. */
+const DISCOVERY_WINDOW_MS = 4000;
 
 export class StateManager extends EventEmitter {
   private state: AppState;
@@ -29,6 +37,12 @@ export class StateManager extends EventEmitter {
   private autoHandled = false;
   /** Guards against BluOS request pile-up when its HTTP server is slow/hung. */
   private bluosInFlight = false;
+  /** Capability discovery: true once the probe window has elapsed. */
+  private capabilitiesReady = false;
+  /** Dirac control port (:5006) reachable — set by the connect-time probe. */
+  private diracOpen = false;
+  /** Pending discovery-window timer, cleared/reset on each (re)connect. */
+  private discoveryTimer: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly nad: NadClient,
@@ -63,7 +77,9 @@ export class StateManager extends EventEmitter {
         defaultVolumeDb: cfg.DEFAULT_VOLUME_DB,
       },
       sourceNames: { ...DEFAULT_SOURCE_NAMES },
-      diracAvailable: false, // Phase 0: port 5006 absent on this unit.
+      diracAvailable: false, // resolved by the connect-time :5006 probe.
+      capabilities: {},
+      capabilitiesReady: false,
       updatedAt: 0,
     };
   }
@@ -83,6 +99,7 @@ export class StateManager extends EventEmitter {
       this.startupReconciled = false;
       this.nad.querySourceNames();
       this.nad.pollState();
+      this.beginDiscovery();
     });
     this.poll();
     this.timer = setInterval(() => this.poll(), this.cfg.POLL_INTERVAL_MS);
@@ -90,6 +107,40 @@ export class StateManager extends EventEmitter {
 
   stop(): void {
     if (this.timer) clearInterval(this.timer);
+    if (this.discoveryTimer) clearTimeout(this.discoveryTimer);
+  }
+
+  /**
+   * Start runtime capability discovery on (re)connect: fire the probe `?` burst,
+   * test the Dirac port out-of-band, and arm the window after which a silent key
+   * counts as unsupported. Re-running on reconnect re-probes a (possibly swapped)
+   * device cleanly.
+   */
+  private beginDiscovery(): void {
+    this.capabilitiesReady = false;
+    this.diracOpen = false;
+    if (this.discoveryTimer) clearTimeout(this.discoveryTimer);
+
+    this.nad.probeCapabilities();
+
+    // Out-of-band: is the Dirac control port open? (Dirac-equipped models only.)
+    void probeTcpOpen(this.cfg.DEVICE_IP, DIRAC_PORT)
+      .then((open) => {
+        this.diracOpen = open;
+        if (open) this.log('info', `Dirac control port (:${DIRAC_PORT}) detected`);
+      })
+      .catch(() => {})
+      .finally(() => this.rebuildNad());
+
+    this.discoveryTimer = setTimeout(() => {
+      this.capabilitiesReady = true;
+      const caps = this.state.capabilities;
+      const supported = Object.entries(caps)
+        .filter(([, s]) => s === 'supported')
+        .map(([id]) => id);
+      this.log('info', `capability discovery done — ${supported.length} features: ${supported.join(', ')}`);
+      this.rebuildNad();
+    }, DISCOVERY_WINDOW_MS);
   }
 
   setNotice(msg: string): void {
@@ -241,7 +292,7 @@ export class StateManager extends EventEmitter {
       active: tunerIndex !== undefined && nad.source === tunerIndex,
       band: v.get('Tuner.Band'),
       fmFrequency: v.get('Tuner.FM.Frequency'),
-      fmPreset: v.get('Tuner.FM.Preset'),
+      fmPreset: getAliased(v, 'Tuner.FM.Preset'),
       mute: onOff('Tuner.FM.Mute'),
     };
 
@@ -258,6 +309,13 @@ export class StateManager extends EventEmitter {
       }
     }
 
+    const capabilities = computeCapabilities(v, {
+      ready: this.capabilitiesReady,
+      bluos: this.state.nowPlaying.reachable,
+      dirac: this.diracOpen,
+      tunerSourceIndex: tunerIndex,
+    });
+
     this.state = {
       ...this.state,
       nad,
@@ -268,6 +326,9 @@ export class StateManager extends EventEmitter {
       bluosSourceIndex: bluosIndex,
       autoSwitchOnPlay: this.autoSwitchOnPlay,
       safety: { ...this.state.safety, overCapAlert },
+      diracAvailable: capabilities.dirac === 'supported',
+      capabilities,
+      capabilitiesReady: this.capabilitiesReady,
       updatedAt: Date.now(),
     };
     this.emit('state', this.state);
