@@ -1,0 +1,13 @@
+{
+  "name": "nad",
+  "version": "0.0.0",
+  "private": true,
+  "description": "NAD T 777 V3 control & monitoring overlay (local, standalone)",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "probe": "pnpm --filter @nad/api probe"
+  },
+  "packageManager": "pnpm@11.1.2"
+}
