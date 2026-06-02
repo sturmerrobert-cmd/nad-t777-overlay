@@ -28,9 +28,9 @@ interface Deps {
   state: StateManager;
 }
 
-export async function buildServer(deps: Deps) {
+export async function buildServer(deps: Deps, opts?: { logger?: boolean }) {
   const { nad, bluos, volume, usage, tracks, state } = deps;
-  const app = Fastify({ logger: { level: 'info' } });
+  const app = Fastify({ logger: opts?.logger === false ? false : { level: 'info' } });
 
   await app.register(cors, { origin: true });
   await app.register(websocket);
