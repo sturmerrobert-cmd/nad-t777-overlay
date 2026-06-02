@@ -124,9 +124,31 @@ export class NadClient extends EventEmitter {
       'Main.Mute',
       'Main.Source',
       'Main.ListeningMode',
+      'Main.Dimmer',
+      'Main.Sleep',
+      // Incoming audio signal / format (shown on the receiver's display).
+      'Main.Audio.CODEC',
+      'Main.Audio.Channels',
+      'Main.Audio.Rate',
+      'Main.Audio.Lock',
+      'Zone2.Power',
+      'Zone2.Source',
+      'Zone2.Volume',
+      'Zone2.Mute',
+      // Tuner keys only answer when the tuner is the active source.
+      'Tuner.Band',
+      'Tuner.FM.Frequency',
+      'Tuner.FM.Preset',
+      'Tuner.FM.Mute',
     ]) {
       this.write(`${k}?`);
     }
+  }
+
+  /** Query the configured display names for all 12 sources (once at connect). */
+  querySourceNames(): void {
+    if (!this.connected) return;
+    for (let i = 1; i <= 12; i++) this.write(`Source${i}.Name?`);
   }
 
   /** Wait until a specific key reports a value (or time out). Used at startup. */
@@ -174,6 +196,53 @@ export class NadClient extends EventEmitter {
 
   setListeningMode(mode: string): void {
     this.write(`Main.ListeningMode=${mode}`);
+  }
+
+  /** Front-panel display dimming. Observed enum value: "Off". */
+  setDimmer(on: boolean): void {
+    this.write(`Main.Dimmer=${on ? 'On' : 'Off'}`);
+  }
+
+  /** Sleep timer in minutes; 0 turns it off. */
+  setSleep(minutes: number): void {
+    if (!Number.isInteger(minutes) || minutes < 0) {
+      throw new Error(`invalid sleep minutes: ${minutes}`);
+    }
+    this.write(`Main.Sleep=${minutes}`);
+  }
+
+  // --- Zone 2 ---
+  setZone2Power(on: boolean): void {
+    this.write(`Zone2.Power=${on ? 'On' : 'Off'}`);
+  }
+  setZone2Source(index: number): void {
+    if (!Number.isInteger(index) || index < 1 || index > 12) {
+      throw new Error(`zone2 source out of range 1-12: ${index}`);
+    }
+    this.write(`Zone2.Source=${index}`);
+  }
+  setZone2Mute(on: boolean): void {
+    this.write(`Zone2.Mute=${on ? 'On' : 'Off'}`);
+  }
+  /** RAW Zone 2 volume set — call ONLY from the guarded VolumeService. */
+  rawSetZone2VolumeDb(db: number): void {
+    this.write(`Zone2.Volume=${db}`);
+  }
+
+  // --- Tuner (responds only when the tuner is the active source) ---
+  setTunerBand(band: 'FM' | 'AM'): void {
+    this.write(`Tuner.Band=${band}`);
+  }
+  setTunerFmPreset(n: number): void {
+    if (!Number.isInteger(n) || n < 1) throw new Error(`invalid FM preset: ${n}`);
+    this.write(`Tuner.FM.Preset=${n}`);
+  }
+  setTunerMute(on: boolean): void {
+    this.write(`Tuner.FM.Mute=${on ? 'On' : 'Off'}`);
+  }
+  /** Step FM frequency up/down (uses the NAD +/- step on the frequency key). */
+  tuneFm(dir: 'up' | 'down'): void {
+    this.write(`Tuner.FM.Frequency${dir === 'up' ? '+' : '-'}`);
   }
 
   /** RAW absolute volume set — call ONLY from the guarded VolumeService. */

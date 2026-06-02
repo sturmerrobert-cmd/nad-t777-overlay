@@ -47,6 +47,11 @@ const schema = z.object({
   // UI-only initial slider position; never sent automatically.
   DEFAULT_VOLUME_DB: numOptional,
 
+  // Zone 2 has its OWN cap. If unset it falls back to MAX_VOLUME_DB, so a
+  // Zone 2 volume path is never uncapped. Step is shared (MAX_STEP_DB).
+  ZONE2_MAX_VOLUME_DB: numOptional,
+  ZONE2_WARN_VOLUME_DB: numOptional,
+
   // If true, pull an observed over-cap volume down to the cap at startup/reconnect.
   CLAMP_ON_OBSERVED: boolDefault(false),
   // If true, continuously poll and clamp over-cap volume from ANY source
@@ -64,6 +69,10 @@ const schema = z.object({
 export type AppConfig = z.infer<typeof schema> & {
   maxVolumeDb: number;
   maxStepDb: number;
+  // Resolved Zone 2 guard settings (own cap; step shared with Main).
+  zone2MaxVolumeDb: number;
+  zone2MaxStepDb: number;
+  zone2WarnVolumeDb?: number;
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -91,10 +100,22 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     );
   }
 
+  // Zone 2 cap falls back to the Main cap so a volume path is never uncapped.
+  const zone2MaxVolumeDb = cfg.ZONE2_MAX_VOLUME_DB ?? cfg.MAX_VOLUME_DB;
+  const zone2WarnVolumeDb = cfg.ZONE2_WARN_VOLUME_DB ?? cfg.WARN_VOLUME_DB;
+  if (zone2WarnVolumeDb !== undefined && zone2WarnVolumeDb > zone2MaxVolumeDb) {
+    throw new Error(
+      `ZONE2_WARN_VOLUME_DB (${zone2WarnVolumeDb}) must be <= ZONE2_MAX_VOLUME_DB (${zone2MaxVolumeDb}).`,
+    );
+  }
+
   return {
     ...cfg,
     // Convenient aliases for the guard.
     maxVolumeDb: cfg.MAX_VOLUME_DB,
     maxStepDb: cfg.MAX_STEP_DB,
+    zone2MaxVolumeDb,
+    zone2MaxStepDb: cfg.MAX_STEP_DB, // shared with Main (per user choice)
+    zone2WarnVolumeDb,
   };
 }

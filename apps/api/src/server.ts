@@ -1,19 +1,8 @@
 /**
  * Fastify 5 HTTP + WebSocket server.
  *
- * - GET  /api/health, /api/state
- * - WS   /ws                          → pushes AppState on every change
- * - POST /api/power            {on}
- * - POST /api/volume/step      {deltaDb}     (guarded)
- * - POST /api/volume/set       {targetDb}    (guarded; rejects >MAX_STEP_DB jumps)
- * - POST /api/mute             {on}
- * - POST /api/source           {index 1-12}
- * - POST /api/listening-mode   {mode}
- * - POST /api/bluos/preset     {id}
- * - POST /api/bluos/transport  {action: play|pause|skip|back}
- * - POST /api/source-names     {names}        (UI-editable labels)
- *
- * Every volume change goes through VolumeService — there is no raw set-dB route.
+ * Every volume change (Main and Zone 2) goes through the guarded VolumeService —
+ * there is no raw set-dB route for either channel.
  */
 
 import Fastify from 'fastify';
@@ -25,7 +14,6 @@ import type { BluOSClient } from './bluos/client.js';
 import type { VolumeService } from './volume/service.js';
 import type { StateManager } from './state.js';
 import type { AppConfig } from './config.js';
-import { DEFAULT_SOURCE_NAMES } from './types.js';
 
 interface Deps {
   cfg: AppConfig;
@@ -36,24 +24,30 @@ interface Deps {
 }
 
 export async function buildServer(deps: Deps) {
-  const { cfg, nad, bluos, volume, state } = deps;
+  const { nad, bluos, volume, state } = deps;
   const app = Fastify({ logger: { level: 'info' } });
 
   await app.register(cors, { origin: true });
   await app.register(websocket);
 
-  // In-memory editable source names (Phase 1; not persisted).
-  const sourceNames: Record<number, string> = { ...DEFAULT_SOURCE_NAMES };
+  /** Wrap a synchronous NAD command in a uniform 503-on-failure handler. */
+  const cmd = (fn: () => void, reply: import('fastify').FastifyReply) => {
+    try {
+      fn();
+      return { ok: true };
+    } catch (e) {
+      return reply.code(503).send({ ok: false, error: (e as Error).message });
+    }
+  };
 
   app.get('/api/health', async () => ({ ok: true }));
-
-  app.get('/api/state', async () => ({ ...state.getState(), sourceNames }));
+  app.get('/api/state', async () => state.getState());
 
   // WebSocket: push current state on connect, then on every change.
   app.get('/ws', { websocket: true }, (socket) => {
     const send = (s: unknown) => {
       try {
-        socket.send(JSON.stringify({ type: 'state', payload: { ...(s as object), sourceNames } }));
+        socket.send(JSON.stringify({ type: 'state', payload: s }));
       } catch {
         /* ignore */
       }
@@ -64,101 +58,145 @@ export async function buildServer(deps: Deps) {
     socket.on('close', () => state.off('state', onState));
   });
 
-  // --- Power ---
+  // ---------- Main zone ----------
   app.post('/api/power', async (req, reply) => {
-    const body = z.object({ on: z.boolean() }).safeParse(req.body);
-    if (!body.success) return reply.code(400).send({ ok: false, error: 'on:boolean required' });
-    try {
-      nad.setPower(body.data.on);
-      return { ok: true };
-    } catch (e) {
-      return reply.code(503).send({ ok: false, error: (e as Error).message });
-    }
+    const b = z.object({ on: z.boolean() }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'on:boolean required' });
+    return cmd(() => nad.setPower(b.data.on), reply);
   });
 
-  // --- Volume (guarded) ---
-  app.post('/api/volume/step', async (req, reply) => {
-    const body = z.object({ deltaDb: z.number() }).safeParse(req.body);
-    if (!body.success) return reply.code(400).send({ ok: false, error: 'deltaDb:number required' });
-    const result = volume.step(body.data.deltaDb);
-    if (result.note) state.setNotice(result.note);
-    if (!result.ok) return reply.code(409).send(result);
-    return result;
-  });
-
-  app.post('/api/volume/set', async (req, reply) => {
-    const body = z.object({ targetDb: z.number() }).safeParse(req.body);
-    if (!body.success) return reply.code(400).send({ ok: false, error: 'targetDb:number required' });
-    const result = volume.setAbsolute(body.data.targetDb);
-    if (result.note) state.setNotice(result.note);
-    if (!result.ok) return reply.code(409).send(result);
-    return result;
-  });
-
-  // --- Mute ---
   app.post('/api/mute', async (req, reply) => {
-    const body = z.object({ on: z.boolean() }).safeParse(req.body);
-    if (!body.success) return reply.code(400).send({ ok: false, error: 'on:boolean required' });
-    try {
-      nad.setMute(body.data.on);
-      return { ok: true };
-    } catch (e) {
-      return reply.code(503).send({ ok: false, error: (e as Error).message });
-    }
+    const b = z.object({ on: z.boolean() }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'on:boolean required' });
+    return cmd(() => nad.setMute(b.data.on), reply);
   });
 
-  // --- Source ---
   app.post('/api/source', async (req, reply) => {
-    const body = z.object({ index: z.number().int().min(1).max(12) }).safeParse(req.body);
-    if (!body.success) return reply.code(400).send({ ok: false, error: 'index:1-12 required' });
-    try {
-      nad.setSource(body.data.index);
-      return { ok: true };
-    } catch (e) {
-      return reply.code(503).send({ ok: false, error: (e as Error).message });
-    }
+    const b = z.object({ index: z.number().int().min(1).max(12) }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'index:1-12 required' });
+    return cmd(() => nad.setSource(b.data.index), reply);
   });
 
   app.post('/api/source-names', async (req, reply) => {
-    const body = z
-      .object({ names: z.record(z.string(), z.string()) })
-      .safeParse(req.body);
-    if (!body.success) return reply.code(400).send({ ok: false, error: 'names:{idx:name} required' });
-    for (const [k, v] of Object.entries(body.data.names)) {
+    const b = z.object({ names: z.record(z.string(), z.string()) }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'names:{idx:name} required' });
+    for (const [k, v] of Object.entries(b.data.names)) {
       const idx = Number(k);
-      if (Number.isInteger(idx) && idx >= 1 && idx <= 12) sourceNames[idx] = v;
+      if (Number.isInteger(idx) && idx >= 1 && idx <= 12) state.setSourceNameOverride(idx, v);
     }
-    return { ok: true, sourceNames };
+    return { ok: true, sourceNames: state.getState().sourceNames };
   });
 
-  // --- Listening mode ---
   app.post('/api/listening-mode', async (req, reply) => {
-    const body = z.object({ mode: z.string().min(1) }).safeParse(req.body);
-    if (!body.success) return reply.code(400).send({ ok: false, error: 'mode:string required' });
-    try {
-      nad.setListeningMode(body.data.mode);
-      return { ok: true };
-    } catch (e) {
-      return reply.code(503).send({ ok: false, error: (e as Error).message });
-    }
+    const b = z.object({ mode: z.string().min(1) }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'mode:string required' });
+    return cmd(() => nad.setListeningMode(b.data.mode), reply);
   });
 
-  // --- BluOS presets + transport ---
+  app.post('/api/dimmer', async (req, reply) => {
+    const b = z.object({ on: z.boolean() }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'on:boolean required' });
+    return cmd(() => nad.setDimmer(b.data.on), reply);
+  });
+
+  app.post('/api/sleep', async (req, reply) => {
+    const b = z.object({ minutes: z.number().int().min(0).max(240) }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'minutes:0-240 required' });
+    return cmd(() => nad.setSleep(b.data.minutes), reply);
+  });
+
+  // ---------- Volume (guarded) — Main ----------
+  app.post('/api/volume/step', async (req, reply) => {
+    const b = z.object({ deltaDb: z.number() }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'deltaDb:number required' });
+    const r = volume.step(b.data.deltaDb, 'main');
+    if (r.note) state.setNotice(r.note);
+    return r.ok ? r : reply.code(409).send(r);
+  });
+
+  app.post('/api/volume/set', async (req, reply) => {
+    const b = z.object({ targetDb: z.number() }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'targetDb:number required' });
+    const r = volume.setAbsolute(b.data.targetDb, 'main');
+    if (r.note) state.setNotice(r.note);
+    return r.ok ? r : reply.code(409).send(r);
+  });
+
+  // ---------- Zone 2 ----------
+  app.post('/api/zone2/power', async (req, reply) => {
+    const b = z.object({ on: z.boolean() }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'on:boolean required' });
+    return cmd(() => nad.setZone2Power(b.data.on), reply);
+  });
+
+  app.post('/api/zone2/source', async (req, reply) => {
+    const b = z.object({ index: z.number().int().min(1).max(12) }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'index:1-12 required' });
+    return cmd(() => nad.setZone2Source(b.data.index), reply);
+  });
+
+  app.post('/api/zone2/mute', async (req, reply) => {
+    const b = z.object({ on: z.boolean() }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'on:boolean required' });
+    return cmd(() => nad.setZone2Mute(b.data.on), reply);
+  });
+
+  // Zone 2 volume is guarded by the SAME cap/step as Main.
+  app.post('/api/zone2/volume/step', async (req, reply) => {
+    const b = z.object({ deltaDb: z.number() }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'deltaDb:number required' });
+    const r = volume.step(b.data.deltaDb, 'zone2');
+    if (r.note) state.setNotice(r.note);
+    return r.ok ? r : reply.code(409).send(r);
+  });
+
+  app.post('/api/zone2/volume/set', async (req, reply) => {
+    const b = z.object({ targetDb: z.number() }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'targetDb:number required' });
+    const r = volume.setAbsolute(b.data.targetDb, 'zone2');
+    if (r.note) state.setNotice(r.note);
+    return r.ok ? r : reply.code(409).send(r);
+  });
+
+  // ---------- Tuner (responds only when the tuner is the active source) ----------
+  app.post('/api/tuner/band', async (req, reply) => {
+    const b = z.object({ band: z.enum(['FM', 'AM']) }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'band:FM|AM required' });
+    return cmd(() => nad.setTunerBand(b.data.band), reply);
+  });
+
+  app.post('/api/tuner/preset', async (req, reply) => {
+    const b = z.object({ n: z.number().int().min(1).max(40) }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'n:1-40 required' });
+    return cmd(() => nad.setTunerFmPreset(b.data.n), reply);
+  });
+
+  app.post('/api/tuner/mute', async (req, reply) => {
+    const b = z.object({ on: z.boolean() }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'on:boolean required' });
+    return cmd(() => nad.setTunerMute(b.data.on), reply);
+  });
+
+  app.post('/api/tuner/tune', async (req, reply) => {
+    const b = z.object({ dir: z.enum(['up', 'down']) }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'dir:up|down required' });
+    return cmd(() => nad.tuneFm(b.data.dir), reply);
+  });
+
+  // ---------- BluOS presets + transport ----------
   app.get('/api/bluos/presets', async () => ({ presets: await bluos.getPresets() }));
 
   app.post('/api/bluos/preset', async (req, reply) => {
-    const body = z.object({ id: z.number().int() }).safeParse(req.body);
-    if (!body.success) return reply.code(400).send({ ok: false, error: 'id:int required' });
-    await bluos.loadPreset(body.data.id);
+    const b = z.object({ id: z.number().int() }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'id:int required' });
+    await bluos.loadPreset(b.data.id);
     return { ok: true };
   });
 
   app.post('/api/bluos/transport', async (req, reply) => {
-    const body = z
-      .object({ action: z.enum(['play', 'pause', 'skip', 'back']) })
-      .safeParse(req.body);
-    if (!body.success) return reply.code(400).send({ ok: false, error: 'action required' });
-    await bluos[body.data.action]();
+    const b = z.object({ action: z.enum(['play', 'pause', 'skip', 'back']) }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'action required' });
+    await bluos[b.data.action]();
     return { ok: true };
   });
 

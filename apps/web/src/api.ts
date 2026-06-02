@@ -23,17 +23,42 @@ async function post(path: string, body: unknown): Promise<ApiResult> {
 }
 
 export const api = {
+  // Main
   power: (on: boolean) => post('/api/power', { on }),
   mute: (on: boolean) => post('/api/mute', { on }),
   source: (index: number) => post('/api/source', { index }),
   listeningMode: (mode: string) => post('/api/listening-mode', { mode }),
+  dimmer: (on: boolean) => post('/api/dimmer', { on }),
+  sleep: (minutes: number) => post('/api/sleep', { minutes }),
   volumeStep: (deltaDb: number) => post('/api/volume/step', { deltaDb }),
   volumeSet: (targetDb: number) => post('/api/volume/set', { targetDb }),
   sourceNames: (names: Record<string, string>) => post('/api/source-names', { names }),
+  // Zone 2 (volume guarded by the same cap/step)
+  zone2Power: (on: boolean) => post('/api/zone2/power', { on }),
+  zone2Source: (index: number) => post('/api/zone2/source', { index }),
+  zone2Mute: (on: boolean) => post('/api/zone2/mute', { on }),
+  zone2VolumeStep: (deltaDb: number) => post('/api/zone2/volume/step', { deltaDb }),
+  zone2VolumeSet: (targetDb: number) => post('/api/zone2/volume/set', { targetDb }),
+  // Tuner
+  tunerBand: (band: 'FM' | 'AM') => post('/api/tuner/band', { band }),
+  tunerPreset: (n: number) => post('/api/tuner/preset', { n }),
+  tunerMute: (on: boolean) => post('/api/tuner/mute', { on }),
+  tunerTune: (dir: 'up' | 'down') => post('/api/tuner/tune', { dir }),
+  // BluOS
   bluosPreset: (id: number) => post('/api/bluos/preset', { id }),
   bluosTransport: (action: 'play' | 'pause' | 'skip' | 'back') =>
     post('/api/bluos/transport', { action }),
 };
+
+export async function fetchPresets(): Promise<Array<{ id: number; name: string }>> {
+  try {
+    const res = await fetch('/api/bluos/presets');
+    const j = (await res.json()) as { presets: Array<{ id: number; name: string }> };
+    return j.presets ?? [];
+  } catch {
+    return [];
+  }
+}
 
 /** Subscribe to live AppState over WebSocket, with auto-reconnect. */
 export function useLiveState(): { state: AppState | null; connected: boolean } {

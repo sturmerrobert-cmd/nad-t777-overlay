@@ -107,6 +107,30 @@ describe('guardRelative', () => {
   });
 });
 
+describe('independent channel cap (e.g. Zone 2 with its own cap)', () => {
+  // Zone 2 can carry a different cap than Main; the pure guard just takes a cfg.
+  const z2: VolumeGuardConfig = { maxVolumeDb: -15, maxStepDb: 5 };
+
+  it('clamps a Zone 2 set to the Zone 2 cap, not the Main cap', () => {
+    const r = guardAbsolute(-12, -17, z2); // above -15 cap, 5 dB move from -17
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.targetDb).toBe(-15);
+      expect(r.clamped).toBe(true);
+    }
+  });
+
+  it('allows a Zone 2 level that would be over the stricter Main cap', () => {
+    const r = guardAbsolute(-18, -20, z2); // -18 is above Main -30 but below Zone 2 -15
+    expect(r).toMatchObject({ ok: true, targetDb: -18, clamped: false });
+  });
+
+  it('flags Zone 2 over its own cap independently', () => {
+    expect(evaluateObserved(-10, z2)).toEqual({ overCap: true, clampTo: -15 });
+    expect(evaluateObserved(-20, z2)).toEqual({ overCap: false, clampTo: -20 });
+  });
+});
+
 describe('evaluateObserved', () => {
   it('flags an observed volume above the cap and proposes pulling down to the cap', () => {
     expect(evaluateObserved(-20, cfg)).toEqual({ overCap: true, clampTo: -30 });

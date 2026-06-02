@@ -45,6 +45,7 @@ async function main(): Promise<void> {
   console.log(`\nNAD overlay API listening on http://0.0.0.0:${cfg.HTTP_PORT}`);
   console.log(`  device:        ${cfg.DEVICE_IP}  (NAD:${cfg.NAD_PORT}, BluOS:${cfg.BLUOS_PORT})`);
   console.log(`  MAX_VOLUME_DB: ${cfg.maxVolumeDb} dB  (hard cap)`);
+  console.log(`  ZONE2 cap:     ${cfg.zone2MaxVolumeDb} dB${cfg.ZONE2_MAX_VOLUME_DB === undefined ? ' (fallback to Main)' : ''}`);
   console.log(`  MAX_STEP_DB:   ${cfg.maxStepDb} dB`);
   console.log(`  WARN_VOLUME_DB:${cfg.WARN_VOLUME_DB ?? '(unset)'}  DEFAULT(UI):${cfg.DEFAULT_VOLUME_DB ?? '(unset)'}`);
   console.log(`  CLAMP_ON_OBSERVED:${cfg.CLAMP_ON_OBSERVED}  VOLUME_WATCHDOG:${cfg.VOLUME_WATCHDOG}`);

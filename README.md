@@ -23,12 +23,28 @@ Real power draw could only ever come from an external metering smart plug
 
 ## Active features
 
-- **Power** on/off, **mute**
-- **Guarded volume** (see below) — step buttons + slider, capped in UI and server
-- **Source** 1–12 with editable names
-- **Listening mode**
-- **Now-playing** card from BluOS `/SyncStatus` + `/Status`
-- **BluOS** presets and transport (play/pause/skip/back)
+The UI is organized into a tabbed menu:
+
+- **Główne (Main):** a VFD-style re-creation of the NAD T 777 front display
+  (source, volume, now-playing title, listening mode + live signal line), then
+  power, mute, **guarded volume** (see below), source (1–12 with the device's own
+  configured names), listening mode, and a **Signal / quality** card.
+  The signal info comes from the receiver's own decode (`Main.Audio.CODEC`,
+  `Main.Audio.Channels`, `Main.Audio.Rate`, `Main.Audio.Lock`) plus BluOS
+  `quality`/`service`.
+- **Odtwarzanie (Now Playing):** BluOS now-playing card from `/SyncStatus` +
+  `/Status`, transport (play/pause/skip/back), presets.
+- **Tuner:** band (FM/AM), tune ◀/▶, FM presets, mute — per the NAD V2.x reference.
+  These respond only when the tuner is the active source; the tab shows a hint and
+  a one-tap "switch to Tuner" when it isn't.
+- **Strefa 2 (Zone 2):** power, source, mute, and **guarded Zone 2 volume** — the
+  Zone 2 volume path goes through the **same** cap/step guard as Main.
+- **System:** display dimmer (on/off), sleep timer (off/15/30/45/60/90 min),
+  device info, and the live volume-safety settings.
+
+All command surfaces were grounded against the live device in discovery (source
+names, dimmer, sleep, Zone 2 all confirmed). Tuner detail keys were not verified
+because the tuner wasn't the active source — the UI labels them accordingly.
 
 Disabled / not built: Dirac panel (no port 5006), any hardware telemetry.
 
