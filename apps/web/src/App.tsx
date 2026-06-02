@@ -4,52 +4,63 @@ import {
   useLiveState, type ApiResult,
 } from './api';
 import type { AppState, UsageLog, UsageSegment, TrackEntry, BrowseItem, BrowseResult, QueueItem } from './types';
+import { t, getLang, setLang, LANGS, manual, type Lang } from './i18n';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const round1 = (n: number) => Math.round(n * 10) / 10;
 const NAD_FLOOR_DB = -80;
 
-type TabId = 'main' | 'audio' | 'playing' | 'library' | 'tuner' | 'zone2' | 'usage' | 'system';
+type TabId = 'main' | 'audio' | 'playing' | 'library' | 'tuner' | 'zone2' | 'usage' | 'system' | 'help';
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'main', label: 'Główne' },
-  { id: 'audio', label: 'Dźwięk' },
-  { id: 'playing', label: 'Odtwarzanie' },
-  { id: 'library', label: 'Biblioteka' },
-  { id: 'tuner', label: 'Tuner' },
-  { id: 'zone2', label: 'Strefa 2' },
-  { id: 'usage', label: 'Log użycia' },
-  { id: 'system', label: 'System' },
+const TABS: { id: TabId; key: string }[] = [
+  { id: 'main', key: 'tab.main' },
+  { id: 'audio', key: 'tab.audio' },
+  { id: 'playing', key: 'tab.playing' },
+  { id: 'library', key: 'tab.library' },
+  { id: 'tuner', key: 'tab.tuner' },
+  { id: 'zone2', key: 'tab.zone2' },
+  { id: 'usage', key: 'tab.usage' },
+  { id: 'system', key: 'tab.system' },
+  { id: 'help', key: 'tab.help' },
 ];
 
 export function App() {
   const { state, connected } = useLiveState();
   const [tab, setTab] = useState<TabId>('main');
+  const [, setLangTick] = useState<Lang>(getLang());
+  const changeLang = (l: Lang) => { setLang(l); setLangTick(l); };
 
   return (
     <div className="app">
       <header className="topbar">
         <h1>NAD T 777 <span className="muted">overlay</span></h1>
-        <ConnBadge connected={connected} state={state} />
+        <div className="topbar-right">
+          <ConnBadge connected={connected} state={state} />
+          <div className="lang-switch">
+            {LANGS.map((l) => (
+              <button key={l.id} className={`lang ${getLang() === l.id ? 'active' : ''}`} onClick={() => changeLang(l.id)}>{l.label}</button>
+            ))}
+          </div>
+        </div>
       </header>
 
       {!state ? (
-        <p className="muted">Connecting…</p>
+        <p className="muted">{t('app.connecting')}</p>
       ) : (
         <>
           <SafetyStrip state={state} />
           {state.lastNotice && <div className="notice">⚠ {state.lastNotice}</div>}
 
           <nav className="tabs">
-            {TABS.map((t) => (
+            {TABS.map((tb) => (
               <button
-                key={t.id}
-                className={`tab ${tab === t.id ? 'active' : ''}`}
-                onClick={() => setTab(t.id)}
+                key={tb.id}
+                className={`tab ${tab === tb.id ? 'active' : ''}`}
+                onClick={() => setTab(tb.id)}
               >
-                {t.label}
-                {t.id === 'tuner' && !state.tuner.active && <span className="dot" title="inactive" />}
-                {t.id === 'zone2' && state.zone2.overCapAlert && <span className="dot alert" title="over cap" />}
+                {t(tb.key)}
+                {tb.id === 'tuner' && !state.tuner.active && <span className="dot" title="inactive" />}
+                {tb.id === 'zone2' && state.zone2.overCapAlert && <span className="dot alert" title="over cap" />}
               </button>
             ))}
           </nav>
@@ -63,6 +74,7 @@ export function App() {
             {tab === 'zone2' && <Zone2Tab state={state} />}
             {tab === 'usage' && <UsageTab />}
             {tab === 'system' && <SystemTab state={state} />}
+            {tab === 'help' && <HelpTab />}
           </main>
         </>
       )}
@@ -75,10 +87,10 @@ function ConnBadge({ connected, state }: { connected: boolean; state: AppState |
   const bluos = state?.nowPlaying.reachable;
   return (
     <div className="badges">
-      <span className={`badge ${connected ? 'ok' : 'bad'}`}>{connected ? 'live' : 'offline'}</span>
+      <span className={`badge ${connected ? 'ok' : 'bad'}`}>{connected ? t('badge.live') : t('badge.offline')}</span>
       <span className={`badge ${nad ? 'ok' : 'bad'}`}>NAD {nad ? 'OK' : '—'}</span>
-      <span className={`badge ${bluos ? 'ok' : 'bad'}`} title={bluos ? '' : 'BluOS HTTP (port 11000) not responding — reboot the BluOS player'}>
-        BluOS {bluos ? 'OK' : 'down'}
+      <span className={`badge ${bluos ? 'ok' : 'bad'}`} title={bluos ? '' : t('badge.bluosDownHint')}>
+        BluOS {bluos ? 'OK' : t('badge.down')}
       </span>
       {state?.nad.model && <span className="badge dim">{state.nad.model} {state.nad.version}</span>}
     </div>
@@ -90,14 +102,14 @@ function SafetyStrip({ state }: { state: AppState }) {
   const alert = safety.overCapAlert || zone2.overCapAlert;
   return (
     <div className={`safety ${alert ? 'alert' : ''}`}>
-      <strong>Volume safety</strong>
-      <span>Main cap <b>{safety.maxVolumeDb} dB</b></span>
-      <span>Zone 2 cap <b>{zone2Safety.maxVolumeDb} dB</b></span>
-      <span>step ≤ {safety.maxStepDb} dB</span>
-      {safety.warnVolumeDb !== undefined && <span>warn {safety.warnVolumeDb} dB</span>}
-      <span>watchdog {safety.watchdog ? 'on' : 'off'}</span>
-      {safety.overCapAlert && <span className="alert-text">⚠ Main {state.nad.volumeDb} dB above cap</span>}
-      {zone2.overCapAlert && <span className="alert-text">⚠ Zone 2 {zone2.volumeDb} dB above {zone2Safety.maxVolumeDb}</span>}
+      <strong>{t('safety.title')}</strong>
+      <span>{t('safety.mainCap')} <b>{safety.maxVolumeDb} dB</b></span>
+      <span>{t('safety.zone2Cap')} <b>{zone2Safety.maxVolumeDb} dB</b></span>
+      <span>{t('safety.step', { n: safety.maxStepDb })}</span>
+      {safety.warnVolumeDb !== undefined && <span>{t('safety.warn', { n: safety.warnVolumeDb })}</span>}
+      <span>{t('safety.watchdog', { s: safety.watchdog ? t('common.on') : t('common.off') })}</span>
+      {safety.overCapAlert && <span className="alert-text">{t('safety.mainOver', { v: state.nad.volumeDb ?? '?' })}</span>}
+      {zone2.overCapAlert && <span className="alert-text">{t('safety.zone2Over', { v: zone2.volumeDb ?? '?', cap: zone2Safety.maxVolumeDb })}</span>}
     </div>
   );
 }
@@ -105,14 +117,8 @@ function SafetyStrip({ state }: { state: AppState }) {
 /* ----------------------------- Reusable bits ----------------------------- */
 
 function SourceGrid({
-  current,
-  names,
-  onSelect,
-}: {
-  current?: number;
-  names: Record<string, string>;
-  onSelect: (i: number) => void;
-}) {
+  current, names, onSelect,
+}: { current?: number; names: Record<string, string>; onSelect: (i: number) => void }) {
   return (
     <div className="sources">
       {Array.from({ length: 12 }, (_, i) => i + 1).map((idx) => (
@@ -129,28 +135,12 @@ function SourceGrid({
   );
 }
 
-/**
- * Guarded volume control, reused for Main and Zone 2. Reaching a far target
- * ramps in <= maxStep increments, each a separate guarded server command.
- */
+/** Guarded volume control, reused for Main and Zone 2. */
 function GuardedVolume({
-  label,
-  current,
-  cap,
-  maxStep,
-  warnDb,
-  defaultDb,
-  overCap,
-  stepFn,
+  label, current, cap, maxStep, warnDb, defaultDb, overCap, stepFn,
 }: {
-  label: string;
-  current?: number;
-  cap: number;
-  maxStep: number;
-  warnDb?: number;
-  defaultDb?: number;
-  overCap: boolean;
-  stepFn: (delta: number) => Promise<ApiResult>;
+  label: string; current?: number; cap: number; maxStep: number;
+  warnDb?: number; defaultDb?: number; overCap: boolean; stepFn: (delta: number) => Promise<ApiResult>;
 }) {
   const stepSmall = Math.min(2, maxStep);
   const initial = Math.min(current ?? defaultDb ?? cap, cap);
@@ -187,17 +177,17 @@ function GuardedVolume({
   }
 
   function commit(to: number) {
-    const t = Math.min(to, cap);
-    if (warnDb !== undefined && t > warnDb) setPending(t);
-    else void rampTo(t);
+    const tv = Math.min(to, cap);
+    if (warnDb !== undefined && tv > warnDb) setPending(tv);
+    else void rampTo(tv);
   }
 
   return (
     <section className={`card volume ${overCap ? 'overcap' : ''}`}>
-      <h2>{label} <span className="muted">(guarded)</span></h2>
+      <h2>{label} <span className="muted">{t('vol.guarded')}</span></h2>
       <div className="vol-readout">
         <span className="big">{current ?? '—'}</span><span className="unit">dB</span>
-        {overCap && <span className="overcap-tag">above cap — app won’t raise it</span>}
+        {overCap && <span className="overcap-tag">{t('vol.overcap')}</span>}
       </div>
 
       <div className="row center">
@@ -221,19 +211,19 @@ function GuardedVolume({
         />
         <div className="slider-labels">
           <span>{NAD_FLOOR_DB}</span>
-          <span>target {target} dB</span>
-          <span>cap {cap}</span>
+          <span>{t('vol.target', { v: target })}</span>
+          <span>{t('vol.cap', { v: cap })}</span>
         </div>
       </div>
 
       {pending !== null && (
         <div className="confirm">
-          Set <b>{label}</b> to <b>{pending} dB</b> (above warn {warnDb} dB)?
-          <button className="pill warn" onClick={() => { const t = pending; setPending(null); void rampTo(t); }}>Confirm</button>
-          <button className="pill" onClick={() => setPending(null)}>Cancel</button>
+          {t('vol.confirm', { label, v: pending, w: warnDb ?? '?' })}
+          <button className="pill warn" onClick={() => { const tv = pending; setPending(null); void rampTo(tv); }}>{t('common.confirm')}</button>
+          <button className="pill" onClick={() => setPending(null)}>{t('common.cancel')}</button>
         </div>
       )}
-      {busy && <p className="muted">ramping in ≤{maxStep} dB steps…</p>}
+      {busy && <p className="muted">{t('vol.ramping', { n: maxStep })}</p>}
       {msg && <p className="reject">⛔ {msg}</p>}
     </section>
   );
@@ -291,23 +281,23 @@ function MainTab({ state }: { state: AppState }) {
     <NadDisplay state={state} />
     <div className="grid">
       <section className="card">
-        <h2>Power</h2>
+        <h2>{t('main.power')}</h2>
         <div className="row">
-          <button className={`pill ${on ? 'active' : ''}`} onClick={() => api.power(true)}>On</button>
-          <button className={`pill ${!on ? 'active' : ''}`} onClick={() => api.power(false)}>Off</button>
+          <button className={`pill ${on ? 'active' : ''}`} onClick={() => api.power(true)}>{t('common.on')}</button>
+          <button className={`pill ${!on ? 'active' : ''}`} onClick={() => api.power(false)}>{t('common.off')}</button>
           <button className={`pill ${nad.mute ? 'active warn' : ''}`} onClick={() => api.mute(!nad.mute)}>
-            {nad.mute ? 'Muted' : 'Mute'}
+            {nad.mute ? t('common.muted') : t('common.mute')}
           </button>
         </div>
         {state.bluosSourceIndex && state.nad.source !== state.bluosSourceIndex && (
           <button className="big-action" style={{ marginTop: 12 }} onClick={() => api.bluosActivate()}>
-            ▶ Play on NAD (BluOS)
+            {t('main.playOnNad')}
           </button>
         )}
       </section>
 
       <GuardedVolume
-        label="Volume"
+        label={t('main.volume')}
         current={nad.volumeDb}
         cap={safety.maxVolumeDb}
         maxStep={safety.maxStepDb}
@@ -318,30 +308,30 @@ function MainTab({ state }: { state: AppState }) {
       />
 
       <section className="card">
-        <h2>Source</h2>
+        <h2>{t('main.source')}</h2>
         <SourceGrid current={nad.source} names={state.sourceNames} onSelect={api.source} />
       </section>
 
       <section className="card">
-        <h2>Listening mode</h2>
+        <h2>{t('main.listeningMode')}</h2>
         <div className="row wrap">
           {LISTENING_MODES.map((m) => (
             <button key={m} className={`pill ${nad.listeningMode === m ? 'active' : ''}`} onClick={() => api.listeningMode(m)}>{m}</button>
           ))}
         </div>
-        {nad.listeningMode && <p className="muted">current: {nad.listeningMode}</p>}
+        {nad.listeningMode && <p className="muted">{t('common.current')}: {nad.listeningMode}</p>}
       </section>
 
       <section className="card">
-        <h2>Signal / quality</h2>
+        <h2>{t('main.signal')}</h2>
         <ul className="kv">
-          <li><span>format (codec)</span><b>{nad.signal?.codec ?? '—'}</b></li>
-          <li><span>channels</span><b>{nad.signal?.channels ?? '—'}</b></li>
-          <li><span>sample rate</span><b>{nad.signal?.rateKhz ? `${nad.signal.rateKhz} kHz` : '—'}</b></li>
-          <li><span>signal lock</span><b>{nad.signal?.lock ?? '—'}</b></li>
-          <li><span>video</span><b>{nad.signal?.videoResolution || '—'}</b></li>
-          <li><span>A/V delay</span><b>{nad.signal?.delay ?? '—'}</b></li>
-          <li><span>BluOS quality</span><b>{state.nowPlaying.quality ?? '—'}{state.nowPlaying.service ? ` · ${state.nowPlaying.service}` : ''}</b></li>
+          <li><span>{t('sig.codec')}</span><b>{nad.signal?.codec ?? '—'}</b></li>
+          <li><span>{t('sig.channels')}</span><b>{nad.signal?.channels ?? '—'}</b></li>
+          <li><span>{t('sig.rate')}</span><b>{nad.signal?.rateKhz ? `${nad.signal.rateKhz} kHz` : '—'}</b></li>
+          <li><span>{t('sig.lock')}</span><b>{nad.signal?.lock ?? '—'}</b></li>
+          <li><span>{t('sig.video')}</span><b>{nad.signal?.videoResolution || '—'}</b></li>
+          <li><span>{t('sig.delay')}</span><b>{nad.signal?.delay ?? '—'}</b></li>
+          <li><span>{t('sig.bluosQuality')}</span><b>{state.nowPlaying.quality ?? '—'}{state.nowPlaying.service ? ` · ${state.nowPlaying.service}` : ''}</b></li>
         </ul>
       </section>
     </div>
@@ -354,7 +344,7 @@ function BluosModuleCard({ reachable }: { reachable: boolean }) {
   const [msg, setMsg] = useState<string | null>(null);
 
   async function reboot() {
-    if (!confirm('Reboot the BluOS module? Playback will stop and it will be unavailable for ~1–2 min.')) return;
+    if (!confirm(t('bluos.rebootConfirm'))) return;
     setBusy(true); setMsg(null);
     const r = (await api.bluosReboot()) as { ok: boolean; detail?: string; reason?: string };
     setBusy(false);
@@ -363,18 +353,15 @@ function BluosModuleCard({ reachable }: { reachable: boolean }) {
 
   return (
     <section className="card">
-      <h2>BluOS module</h2>
+      <h2>{t('bluos.module')}</h2>
       <div className="row" style={{ marginBottom: 8 }}>
-        <span className={`badge ${reachable ? 'ok' : 'bad'}`}>{reachable ? 'BluOS OK' : 'BluOS down'}</span>
-        <button className="pill" onClick={reboot} disabled={busy}>↻ Try remote reboot</button>
+        <span className={`badge ${reachable ? 'ok' : 'bad'}`}>{reachable ? t('bluos.ok') : t('bluos.down')}</span>
+        <button className="pill" onClick={reboot} disabled={busy}>{t('bluos.tryReboot')}</button>
       </div>
-      <p className="muted" style={{ fontSize: 13 }}>
-        Verified on this unit: BluOS exposes <b>no remote-reboot API</b> (the reboot path returns 404).
-        To reboot the module:
-      </p>
+      <p className="muted" style={{ fontSize: 13 }}>{t('bluos.noRebootApi')}</p>
       <ul className="muted" style={{ fontSize: 13, margin: '4px 0 0', paddingLeft: 18 }}>
-        <li><b>BluOS app</b> → Settings → Players → your player → <b>Reboot</b>, or</li>
-        <li><b>Rear-panel power-cycle</b> (off ~30–60 s, then on) — needed if BluOS is hung/“down”.</li>
+        <li>{t('bluos.rebootApp')}</li>
+        <li>{t('bluos.rebootPower')}</li>
       </ul>
       {msg && <p className={msg.toLowerCase().includes('reboot requested') ? 'muted' : 'reject'}>{msg}</p>}
     </section>
@@ -394,44 +381,33 @@ function PlayingTab({ state }: { state: AppState }) {
   const bluosIdx = state.bluosSourceIndex;
   const onBluos = state.nad.source !== undefined && state.nad.source === bluosIdx;
   const playing = /^(play|stream)/i.test(np.state ?? '');
+  const srcName = state.nad.source ? state.sourceNames[String(state.nad.source)] ?? String(state.nad.source) : '—';
 
   return (
     <div className="grid">
       <section className="card">
-        <h2>Play through the NAD</h2>
+        <h2>{t('play.title')}</h2>
         <button className="big-action" onClick={() => api.bluosActivate()} disabled={!bluosIdx}>
-          ▶ Play on NAD now
+          {t('play.playNow')}
         </button>
         <div className="row" style={{ margin: '10px 0' }}>
           <span className={`badge ${onBluos ? 'ok' : 'dim'}`}>
-            {onBluos ? 'on BluOS' : `source: ${state.nad.source ? state.sourceNames[String(state.nad.source)] ?? state.nad.source : '—'}`}
+            {onBluos ? t('play.onBluos') : t('play.sourceIs', { name: srcName })}
           </span>
-          {playing && <span className="badge ok">streaming</span>}
+          {playing && <span className="badge ok">{t('play.streaming')}</span>}
         </div>
-        <p className="muted">
-          One click: powers on, switches to BluOS{bluosIdx ? ` (source ${bluosIdx})` : ''}, and resumes the
-          stream (Spotify). Volume is never changed. You don’t even need to touch Spotify — selecting
-          BluOS resumes the last session.
-        </p>
-        <ToggleSettingRaw
-          label="Auto-switch to BluOS when playback starts (+power on)"
-          on={state.autoSwitchOnPlay}
-          onSet={(v) => api.autoswitch(v)}
-        />
-        <p className="muted" style={{ fontSize: 12 }}>
-          Note: when the receiver is on another source it reports BluOS as “External Source”, so it can’t
-          see a Spotify start from there — auto-switch only catches cases where BluOS itself reports
-          playing. The button above is the reliable way.
-        </p>
-        {!bluosIdx && <p className="reject">⚠ No source named “BluOS” found on the receiver — can’t target it.</p>}
+        <p className="muted">{t('play.explain')}</p>
+        <ToggleSettingRaw label={t('play.autoSwitch')} on={state.autoSwitchOnPlay} onSet={(v) => api.autoswitch(v)} />
+        <p className="muted" style={{ fontSize: 12 }}>{t('play.autoNote')}</p>
+        {!bluosIdx && <p className="reject">{t('play.noBluos')}</p>}
       </section>
 
       <BluosModuleCard reachable={!!np.reachable} />
 
       <section className="card nowplaying">
-        <h2>Now playing <span className="muted">(BluOS)</span></h2>
+        <h2>{t('play.nowPlaying')} <span className="muted">(BluOS)</span></h2>
         {!np.reachable ? (
-          <p className="muted">BluOS unreachable</p>
+          <p className="muted">{t('play.unreachable')}</p>
         ) : (
           <div className="np">
             {np.imageUrl && <img src={np.imageUrl} alt="" className="art" />}
@@ -456,9 +432,9 @@ function PlayingTab({ state }: { state: AppState }) {
       </section>
 
       <section className="card">
-        <h2>BluOS presets</h2>
+        <h2>{t('play.presets')}</h2>
         {presets.length === 0 ? (
-          <p className="muted">No presets configured.</p>
+          <p className="muted">{t('play.noPresets')}</p>
         ) : (
           <div className="row wrap">
             {presets.map((p) => (
@@ -469,9 +445,9 @@ function PlayingTab({ state }: { state: AppState }) {
       </section>
 
       <section className="card">
-        <h2>Queue <span className="muted">(current play queue)</span></h2>
+        <h2>{t('play.queue')} <span className="muted">{t('play.queueSub')}</span></h2>
         {queue.length === 0 ? (
-          <p className="muted">Queue is empty (or the streamer is in endpoint mode, e.g. Spotify Connect).</p>
+          <p className="muted">{t('play.queueEmpty')}</p>
         ) : (
           <ol className="queue">
             {queue.slice(0, 50).map((q, i) => (
@@ -485,7 +461,6 @@ function PlayingTab({ state }: { state: AppState }) {
 }
 
 function LibraryTab() {
-  // Browse navigator: a stack of {key,label} crumbs.
   const [crumbs, setCrumbs] = useState<{ key?: string; label: string }[]>([{ label: 'BluOS' }]);
   const [res, setRes] = useState<BrowseResult>({ items: [] });
   const [loading, setLoading] = useState(false);
@@ -512,7 +487,7 @@ function LibraryTab() {
   return (
     <div className="grid">
       <section className="card">
-        <h2>Browse BluOS <span className="muted">(radio · playlists · services · local library)</span></h2>
+        <h2>{t('lib.browse')} <span className="muted">{t('lib.browseSub')}</span></h2>
         <div className="crumbs">
           {crumbs.map((c, i) => (
             <span key={i}>
@@ -522,18 +497,15 @@ function LibraryTab() {
           ))}
         </div>
         {loading ? (
-          <p className="muted">Loading…</p>
+          <p className="muted">{t('common.loading')}</p>
         ) : res.items.length === 0 ? (
-          <p className="muted">
-            Nothing here. BluOS only lists content when it’s active — start playing (or pick a source
-            with a library/radio). When you connect a NAS/USB, your local music shows up here too.
-          </p>
+          <p className="muted">{t('lib.empty')}</p>
         ) : (
           <div className="browse-list">
             {res.items.map((it, i) => (
               <button key={i} className={`browse-item ${it.playURL ? 'audio' : 'link'}`} onClick={() => open(it)}>
                 <span className="bi-text">{it.text}</span>
-                <span className="bi-act">{it.playURL ? '▶ play' : it.browseKey ? '›' : ''}</span>
+                <span className="bi-act">{it.playURL ? t('lib.play') : it.browseKey ? '›' : ''}</span>
               </button>
             ))}
           </div>
@@ -542,31 +514,27 @@ function LibraryTab() {
 
       <section className="card">
         <div className="usage-head">
-          <h2>My track list <span className="muted">(what you heard — for buying/finding)</span></h2>
+          <h2>{t('lib.tracklist')} <span className="muted">{t('lib.tracklistSub')}</span></h2>
           <span className="seg">
-            <a className="pill" href="/api/tracks/export.csv" download>Export CSV</a>
-            <button className="pill" onClick={() => { if (confirm('Clear the captured track list?')) void api.tracksClear().then(reloadTracks); }}>Clear</button>
+            <a className="pill" href="/api/tracks/export.csv" download>{t('lib.exportCsv')}</a>
+            <button className="pill" onClick={() => { if (confirm(t('lib.clearConfirm'))) void api.tracksClear().then(reloadTracks); }}>{t('common.clear')}</button>
           </span>
         </div>
-        <p className="muted">
-          {tracks.length} distinct tracks captured from now-playing (titles/artists only — no audio).
-          This is a legal “shopping list”; buy the files (Bandcamp/Qobuz/7digital) or add them to a NAS
-          and BluOS plays them locally.
-        </p>
+        <p className="muted">{t('lib.tracklistNote', { n: tracks.length })}</p>
         {tracks.length === 0 ? (
-          <p className="muted">Nothing captured yet — play some music and tracks will appear here.</p>
+          <p className="muted">{t('lib.noTracks')}</p>
         ) : (
           <div className="table-wrap">
             <table className="usage">
-              <thead><tr><th>Title</th><th>Artist</th><th>Album</th><th>Service</th><th>Plays</th></tr></thead>
+              <thead><tr><th>{t('col.title')}</th><th>{t('col.artist')}</th><th>{t('col.album')}</th><th>{t('col.service')}</th><th>{t('col.plays')}</th></tr></thead>
               <tbody>
-                {tracks.map((t, i) => (
+                {tracks.map((tr, i) => (
                   <tr key={i}>
-                    <td><b>{t.title}</b></td>
-                    <td>{t.artist ?? '—'}</td>
-                    <td className="muted">{t.album ?? '—'}</td>
-                    <td>{t.service ?? '—'}</td>
-                    <td className="num">{t.plays}</td>
+                    <td><b>{tr.title}</b></td>
+                    <td>{tr.artist ?? '—'}</td>
+                    <td className="muted">{tr.album ?? '—'}</td>
+                    <td>{tr.service ?? '—'}</td>
+                    <td className="num">{tr.plays}</td>
                   </tr>
                 ))}
               </tbody>
@@ -579,44 +547,42 @@ function LibraryTab() {
 }
 
 function TunerTab({ state }: { state: AppState }) {
-  const t = state.tuner;
+  const tn = state.tuner;
   const tunerSrc = state.tunerSourceIndex;
   return (
     <div className="grid">
       <section className="card">
-        <h2>Tuner</h2>
-        {!t.active && (
+        <h2>{t('tuner.title')}</h2>
+        {!tn.active && (
           <div className="hint">
-            Tuner controls respond only when the tuner is the active source.
+            {t('tuner.hint')}
             {tunerSrc && (
               <button className="pill" onClick={() => api.source(tunerSrc)} style={{ marginLeft: 8 }}>
-                Switch to {state.sourceNames[String(tunerSrc)] ?? 'Tuner'}
+                {t('tuner.switchTo', { name: state.sourceNames[String(tunerSrc)] ?? 'Tuner' })}
               </button>
             )}
           </div>
         )}
         <div className="tuner-readout">
-          <span className="big">{t.fmFrequency ?? '—'}</span>
-          <span className="unit">{t.band ?? ''}</span>
+          <span className="big">{tn.fmFrequency ?? '—'}</span>
+          <span className="unit">{tn.band ?? ''}</span>
         </div>
         <div className="row">
-          <button className={`pill ${t.band === 'FM' ? 'active' : ''}`} disabled={!t.active} onClick={() => api.tunerBand('FM')}>FM</button>
-          <button className={`pill ${t.band === 'AM' ? 'active' : ''}`} disabled={!t.active} onClick={() => api.tunerBand('AM')}>AM</button>
-          <button className="pill" disabled={!t.active} onClick={() => api.tunerTune('down')}>◀ tune</button>
-          <button className="pill" disabled={!t.active} onClick={() => api.tunerTune('up')}>tune ▶</button>
-          <button className={`pill ${t.mute ? 'active warn' : ''}`} disabled={!t.active} onClick={() => api.tunerMute(!t.mute)}>
-            {t.mute ? 'Muted' : 'Mute'}
+          <button className={`pill ${tn.band === 'FM' ? 'active' : ''}`} disabled={!tn.active} onClick={() => api.tunerBand('FM')}>FM</button>
+          <button className={`pill ${tn.band === 'AM' ? 'active' : ''}`} disabled={!tn.active} onClick={() => api.tunerBand('AM')}>AM</button>
+          <button className="pill" disabled={!tn.active} onClick={() => api.tunerTune('down')}>{t('tuner.tuneDown')}</button>
+          <button className="pill" disabled={!tn.active} onClick={() => api.tunerTune('up')}>{t('tuner.tuneUp')}</button>
+          <button className={`pill ${tn.mute ? 'active warn' : ''}`} disabled={!tn.active} onClick={() => api.tunerMute(!tn.mute)}>
+            {tn.mute ? t('common.muted') : t('common.mute')}
           </button>
         </div>
-        <h2 style={{ marginTop: 18 }}>FM presets</h2>
+        <h2 style={{ marginTop: 18 }}>{t('tuner.presets')}</h2>
         <div className="row wrap">
           {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-            <button key={n} className={`pill ${t.fmPreset === String(n) ? 'active' : ''}`} disabled={!t.active} onClick={() => api.tunerPreset(n)}>P{n}</button>
+            <button key={n} className={`pill ${tn.fmPreset === String(n) ? 'active' : ''}`} disabled={!tn.active} onClick={() => api.tunerPreset(n)}>P{n}</button>
           ))}
         </div>
-        <p className="muted" style={{ marginTop: 10 }}>
-          Per NAD V2.x reference (Tuner.Band / FM.Frequency / FM.Preset / FM.Mute). Not verified in Phase 0 — the tuner wasn’t the active source.
-        </p>
+        <p className="muted" style={{ marginTop: 10 }}>{t('tuner.note')}</p>
       </section>
     </div>
   );
@@ -629,18 +595,18 @@ function Zone2Tab({ state }: { state: AppState }) {
   return (
     <div className="grid">
       <section className="card">
-        <h2>Zone 2 power</h2>
+        <h2>{t('z2.power')}</h2>
         <div className="row">
-          <button className={`pill ${on ? 'active' : ''}`} onClick={() => api.zone2Power(true)}>On</button>
-          <button className={`pill ${!on ? 'active' : ''}`} onClick={() => api.zone2Power(false)}>Off</button>
+          <button className={`pill ${on ? 'active' : ''}`} onClick={() => api.zone2Power(true)}>{t('common.on')}</button>
+          <button className={`pill ${!on ? 'active' : ''}`} onClick={() => api.zone2Power(false)}>{t('common.off')}</button>
           <button className={`pill ${z.mute ? 'active warn' : ''}`} onClick={() => api.zone2Mute(!z.mute)}>
-            {z.mute ? 'Muted' : 'Mute'}
+            {z.mute ? t('common.muted') : t('common.mute')}
           </button>
         </div>
       </section>
 
       <GuardedVolume
-        label={`Zone 2 volume (cap ${zs.maxVolumeDb} dB)`}
+        label={t('z2.volume', { n: zs.maxVolumeDb })}
         current={z.volumeDb}
         cap={zs.maxVolumeDb}
         maxStep={zs.maxStepDb}
@@ -651,18 +617,18 @@ function Zone2Tab({ state }: { state: AppState }) {
       />
 
       <section className="card">
-        <h2>Zone 2 source</h2>
+        <h2>{t('z2.source')}</h2>
         <SourceGrid current={z.source} names={state.sourceNames} onSelect={api.zone2Source} />
       </section>
 
       <section className="card">
-        <h2>Zone 2 output mode</h2>
-        <EnumSetting label="Volume control" k="Zone2.VolumeControl" value={z.volumeControl} options={['Variable', 'Fixed']} />
+        <h2>{t('z2.outputMode')}</h2>
+        <EnumSetting label={t('z2.volumeControl')} k="Zone2.VolumeControl" value={z.volumeControl} options={['Variable', 'Fixed']} />
         <ul className="kv" style={{ marginTop: 8 }}>
-          <li><span>fixed level</span><b>{z.volumeFixed ?? '—'} dB</b></li>
+          <li><span>{t('z2.fixedLevel')}</span><b>{z.volumeFixed ?? '—'} dB</b></li>
         </ul>
         {z.volumeControl === 'Fixed' && (
-          <p className="reject">⚠ Fixed mode outputs at {z.volumeFixed ?? '—'} dB regardless of the Zone 2 volume control — and is NOT bounded by the Zone 2 cap. Use with care.</p>
+          <p className="reject">{t('z2.fixedWarn', { v: z.volumeFixed ?? '—' })}</p>
         )}
       </section>
     </div>
@@ -670,8 +636,7 @@ function Zone2Tab({ state }: { state: AppState }) {
 }
 
 function fmtClock(ms: number): string {
-  const d = new Date(ms);
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 function fmtDay(ms: number): string {
   return new Date(ms).toLocaleDateString([], { month: 'short', day: 'numeric' });
@@ -693,7 +658,7 @@ function UsageRow({ seg }: { seg: UsageSegment }) {
         {seg.open && <span className="live-dot" title="active" />}
       </td>
       <td className="num">{fmtDay(seg.startedAt)} {fmtClock(seg.startedAt)}</td>
-      <td className="num">{seg.open ? '— now' : fmtClock(seg.endedAt)}</td>
+      <td className="num">{seg.open ? t('usage.now') : fmtClock(seg.endedAt)}</td>
       <td className="num">{fmtDur(seg.durationSec)}</td>
       <td className="num">{seg.volAvgDb ?? '—'}</td>
       <td className="num muted">{seg.volMinDb ?? '—'} / {seg.volMaxDb ?? '—'}</td>
@@ -719,27 +684,19 @@ function UsageTab() {
     <div className="grid one">
       <section className="card">
         <div className="usage-head">
-          <h2>Usage log <span className="muted">(from polling · source · time · volume)</span></h2>
-          <button
-            className="pill"
-            onClick={() => { if (confirm('Clear the usage log?')) void usageClear().then(() => fetchUsage(300).then(setLog)); }}
-          >
-            Clear
-          </button>
+          <h2>{t('usage.title')} <span className="muted">{t('usage.sub')}</span></h2>
+          <button className="pill" onClick={() => { if (confirm(t('usage.clearConfirm'))) void usageClear().then(() => fetchUsage(300).then(setLog)); }}>{t('common.clear')}</button>
         </div>
-        <p className="muted">
-          {log.segments.length} past segments · ~{fmtDur(totalSec)} tracked total. Sampled each poll
-          (~1.5 s); a new segment starts when the source changes or power toggles.
-        </p>
+        <p className="muted">{t('usage.summary', { n: log.segments.length, dur: fmtDur(totalSec) })}</p>
         {rows.length === 0 ? (
-          <p className="muted">No usage recorded yet — switch sources or change volume and it will appear here.</p>
+          <p className="muted">{t('usage.empty')}</p>
         ) : (
           <div className="table-wrap">
             <table className="usage">
               <thead>
                 <tr>
-                  <th>Source</th><th>Started</th><th>Ended</th><th>Duration</th>
-                  <th>Avg dB</th><th>Min / Max</th>
+                  <th>{t('col.source')}</th><th>{t('col.started')}</th><th>{t('col.ended')}</th><th>{t('col.duration')}</th>
+                  <th>{t('col.avgDb')}</th><th>{t('col.minMax')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -753,17 +710,25 @@ function UsageTab() {
   );
 }
 
-/* ---- Generic setting controls (bound to allowlisted /api/setting) ----
- *
- * These are OPTIMISTIC: clicking updates the shown value instantly and (for
- * steppers) accumulates locally, while the device value only echoes back ~1.5s
- * later via polling. Incoming live values are adopted only when the user hasn't
- * touched the control recently, so polling never "fights" an in-progress edit.
- */
+function HelpTab() {
+  return (
+    <div className="grid one">
+      {manual().map((sec, i) => (
+        <section className="card" key={i}>
+          <h2>{sec.h}</h2>
+          <ul className="help-list">
+            {sec.items.map((it, j) => <li key={j}>{it}</li>)}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}
 
-const ADOPT_AFTER_MS = 1600; // ignore incoming live value this long after a click
+/* ---- Generic setting controls (optimistic; bound to /api/setting) ---- */
 
-/** Optimistic value that syncs from `incoming` unless recently edited locally. */
+const ADOPT_AFTER_MS = 1600;
+
 function useOptimistic<T>(incoming: T): [T, (v: T) => void, { current: number }] {
   const [val, setVal] = useState<T>(incoming);
   const ref = useRef<T>(incoming);
@@ -785,8 +750,8 @@ function ToggleSetting({ label, k, on }: { label: string; k: string; on?: boolea
     <div className="setting-row">
       <span>{label}</span>
       <span className="seg">
-        <button className={`pill ${local ? 'active' : ''}`} onClick={() => set(true)}>On</button>
-        <button className={`pill ${local === false ? 'active' : ''}`} onClick={() => set(false)}>Off</button>
+        <button className={`pill ${local ? 'active' : ''}`} onClick={() => set(true)}>{t('common.on')}</button>
+        <button className={`pill ${local === false ? 'active' : ''}`} onClick={() => set(false)}>{t('common.off')}</button>
       </span>
     </div>
   );
@@ -799,8 +764,8 @@ function ToggleSettingRaw({ label, on, onSet }: { label: string; on?: boolean; o
     <div className="setting-row">
       <span>{label}</span>
       <span className="seg">
-        <button className={`pill ${local ? 'active' : ''}`} onClick={() => set(true)}>On</button>
-        <button className={`pill ${local === false ? 'active' : ''}`} onClick={() => set(false)}>Off</button>
+        <button className={`pill ${local ? 'active' : ''}`} onClick={() => set(true)}>{t('common.on')}</button>
+        <button className={`pill ${local === false ? 'active' : ''}`} onClick={() => set(false)}>{t('common.off')}</button>
       </span>
     </div>
   );
@@ -820,7 +785,6 @@ function IntSetting({
     if (next === base) return;
     setLocal(next);
     editedAt.current = Date.now();
-    // Debounce the network write so a burst of clicks sends one absolute value.
     clearTimeout(sendTimer.current);
     sendTimer.current = setTimeout(() => { void api.setting(k, next); }, 160);
   }
@@ -853,37 +817,37 @@ function EnumSetting({ label, k, value, options }: { label: string; k: string; v
 }
 
 function AudioTab({ state }: { state: AppState }) {
-  const t = state.nad.tone ?? {};
+  const tone = state.nad.tone ?? {};
   const s = state.nad.setup ?? {};
   const sur = state.nad.surround ?? {};
   return (
     <div className="grid">
       <section className="card">
-        <h2>Tone</h2>
-        <IntSetting label="Bass" k="Main.Bass" value={t.bass} unit="dB" min={-10} max={10} />
-        <IntSetting label="Treble" k="Main.Treble" value={t.treble} unit="dB" min={-10} max={10} />
-        <ToggleSetting label="Tone defeat (bypass)" k="Main.ToneDefeat" on={t.toneDefeat} />
+        <h2>{t('audio.tone')}</h2>
+        <IntSetting label={t('audio.bass')} k="Main.Bass" value={tone.bass} unit="dB" min={-10} max={10} />
+        <IntSetting label={t('audio.treble')} k="Main.Treble" value={tone.treble} unit="dB" min={-10} max={10} />
+        <ToggleSetting label={t('audio.toneDefeat')} k="Main.ToneDefeat" on={tone.toneDefeat} />
       </section>
 
       <section className="card">
-        <h2>Bass management & levels</h2>
-        <ToggleSetting label="Subwoofer" k="Main.Speaker.Sub" on={s.subOn} />
-        <ToggleSetting label="Enhanced bass" k="Main.EnhancedBass" on={s.enhancedBass} />
-        <IntSetting label="Center level" k="Main.Level.Center" value={s.levelCenter} unit="dB" min={-12} max={12} />
-        <IntSetting label="Sub level" k="Main.Level.Sub" value={s.levelSub} unit="dB" min={-12} max={12} />
-        <IntSetting label="Center dialog" k="Main.CenterDialog" value={s.centerDialog} min={0} max={6} />
+        <h2>{t('audio.bassMgmt')}</h2>
+        <ToggleSetting label={t('audio.subwoofer')} k="Main.Speaker.Sub" on={s.subOn} />
+        <ToggleSetting label={t('audio.enhancedBass')} k="Main.EnhancedBass" on={s.enhancedBass} />
+        <IntSetting label={t('audio.centerLevel')} k="Main.Level.Center" value={s.levelCenter} unit="dB" min={-12} max={12} />
+        <IntSetting label={t('audio.subLevel')} k="Main.Level.Sub" value={s.levelSub} unit="dB" min={-12} max={12} />
+        <IntSetting label={t('audio.centerDialog')} k="Main.CenterDialog" value={s.centerDialog} min={0} max={6} />
       </section>
 
       <section className="card">
-        <h2>Speaker config</h2>
-        <EnumSetting label={`Front (xover ${s.frontFreq ?? '—'} Hz)`} k="Main.Speaker.Front.Config" value={s.frontConfig} options={['Large', 'Small']} />
-        <EnumSetting label={`Center (xover ${s.centerFreq ?? '—'} Hz)`} k="Main.Speaker.Center.Config" value={s.centerConfig} options={['Large', 'Small']} />
-        <EnumSetting label={`Surround (xover ${s.surroundFreq ?? '—'} Hz)`} k="Main.Speaker.Surround.Config" value={s.surroundConfig} options={['Large', 'Small']} />
-        <p className="muted">Crossover frequencies are shown read-only.</p>
+        <h2>{t('audio.speakerConfig')}</h2>
+        <EnumSetting label={t('audio.front', { hz: s.frontFreq ?? '—' })} k="Main.Speaker.Front.Config" value={s.frontConfig} options={['Large', 'Small']} />
+        <EnumSetting label={t('audio.center', { hz: s.centerFreq ?? '—' })} k="Main.Speaker.Center.Config" value={s.centerConfig} options={['Large', 'Small']} />
+        <EnumSetting label={t('audio.surround', { hz: s.surroundFreq ?? '—' })} k="Main.Speaker.Surround.Config" value={s.surroundConfig} options={['Large', 'Small']} />
+        <p className="muted">{t('audio.xoverNote')}</p>
       </section>
 
       <section className="card">
-        <h2>Surround params</h2>
+        <h2>{t('audio.surroundParams')}</h2>
         <ToggleSetting label="Dolby Center Spread" k="Main.Dolby.CenterSpread" on={sur.dolbyCenterSpread} />
         <ToggleSetting label="Dolby Panorama" k="Main.Dolby.Panorama" on={sur.dolbyPanorama} />
         <ul className="kv" style={{ marginTop: 10 }}>
@@ -894,7 +858,7 @@ function AudioTab({ state }: { state: AppState }) {
           <li><span>DTS DRC</span><b>{sur.dtsDrc ?? '—'}</b></li>
           <li><span>DTS Dialog Control</span><b>{sur.dtsDialogControl ?? '—'}</b></li>
         </ul>
-        <p className="muted">Listening-mode fine-tuning, shown read-only (toggles above are settable).</p>
+        <p className="muted">{t('audio.surroundNote')}</p>
       </section>
     </div>
   );
@@ -907,55 +871,55 @@ function SystemTab({ state }: { state: AppState }) {
   return (
     <div className="grid">
       <section className="card">
-        <h2>Display dimmer</h2>
+        <h2>{t('sys.dimmer')}</h2>
         <div className="row">
-          <button className={`pill ${dimOn ? 'active' : ''}`} onClick={() => api.dimmer(true)}>Dim On</button>
-          <button className={`pill ${!dimOn ? 'active' : ''}`} onClick={() => api.dimmer(false)}>Dim Off</button>
+          <button className={`pill ${dimOn ? 'active' : ''}`} onClick={() => api.dimmer(true)}>{t('sys.dimOn')}</button>
+          <button className={`pill ${!dimOn ? 'active' : ''}`} onClick={() => api.dimmer(false)}>{t('sys.dimOff')}</button>
         </div>
-        <p className="muted">current: {nad.dimmer ?? '—'}</p>
+        <p className="muted">{t('common.current')}: {nad.dimmer ?? '—'}</p>
       </section>
 
       <section className="card">
-        <h2>Sleep timer</h2>
+        <h2>{t('sys.sleep')}</h2>
         <div className="row wrap">
           {SLEEPS.map((m) => (
             <button key={m} className={`pill ${nad.sleepMinutes === m ? 'active' : ''}`} onClick={() => api.sleep(m)}>
-              {m === 0 ? 'Off' : `${m} min`}
+              {m === 0 ? t('common.off') : `${m} ${t('common.min')}`}
             </button>
           ))}
         </div>
-        <p className="muted">current: {nad.sleepMinutes === 0 || nad.sleepMinutes === undefined ? 'off' : `${nad.sleepMinutes} min`}</p>
+        <p className="muted">{t('common.current')}: {nad.sleepMinutes === 0 || nad.sleepMinutes === undefined ? t('common.off') : `${nad.sleepMinutes} ${t('common.min')}`}</p>
       </section>
 
       <section className="card">
-        <h2>Standby & display</h2>
-        <ToggleSetting label="Auto standby" k="Main.AutoStandby" on={nad.system?.autoStandby} />
-        <ToggleSetting label="OSD temp display" k="Main.OSD.TempDisplay" on={nad.system?.osdTempDisplay} />
+        <h2>{t('sys.standbyDisplay')}</h2>
+        <ToggleSetting label={t('sys.autoStandby')} k="Main.AutoStandby" on={nad.system?.autoStandby} />
+        <ToggleSetting label={t('sys.osdTemp')} k="Main.OSD.TempDisplay" on={nad.system?.osdTempDisplay} />
       </section>
 
       <section className="card">
-        <h2>HDMI CEC</h2>
+        <h2>{t('sys.cec')}</h2>
         <EnumSetting label="ARC" k="Main.CEC.ARC" value={nad.system?.cecArc} options={['Auto', 'On', 'Off']} />
-        <ToggleSetting label="CEC audio" k="Main.CEC.Audio" on={nad.system?.cecAudio} />
-        <ToggleSetting label="CEC switch" k="Main.CEC.Switch" on={nad.system?.cecSwitch} />
-        <ToggleSetting label="CEC power" k="Main.CEC.Power" on={nad.system?.cecPower} />
+        <ToggleSetting label={t('sys.cecAudio')} k="Main.CEC.Audio" on={nad.system?.cecAudio} />
+        <ToggleSetting label={t('sys.cecSwitch')} k="Main.CEC.Switch" on={nad.system?.cecSwitch} />
+        <ToggleSetting label={t('sys.cecPower')} k="Main.CEC.Power" on={nad.system?.cecPower} />
       </section>
 
       <section className="card">
-        <h2>Device</h2>
+        <h2>{t('sys.device')}</h2>
         <ul className="kv">
-          <li><span>model</span><b>{nad.model ?? '—'}</b></li>
-          <li><span>firmware</span><b>{nad.version ?? '—'}</b></li>
-          <li><span>NAD link</span><b>{nad.reachable ? 'connected' : 'down'}</b></li>
-          <li><span>trigger 1 / 2 out</span><b>{nad.system?.trigger1Out ?? '—'} / {nad.system?.trigger2Out ?? '—'}</b></li>
-          <li><span>video resolution</span><b>{nad.signal?.videoResolution || '—'}</b></li>
-          <li><span>A/V delay</span><b>{nad.signal?.delay ?? '—'}</b></li>
-          <li><span>Dirac (5006)</span><b>absent — panel disabled</b></li>
+          <li><span>{t('sys.model')}</span><b>{nad.model ?? '—'}</b></li>
+          <li><span>{t('sys.firmware')}</span><b>{nad.version ?? '—'}</b></li>
+          <li><span>{t('sys.nadLink')}</span><b>{nad.reachable ? t('sys.connected') : t('badge.down')}</b></li>
+          <li><span>{t('sys.triggers')}</span><b>{nad.system?.trigger1Out ?? '—'} / {nad.system?.trigger2Out ?? '—'}</b></li>
+          <li><span>{t('sys.videoRes')}</span><b>{nad.signal?.videoResolution || '—'}</b></li>
+          <li><span>{t('sig.delay')}</span><b>{nad.signal?.delay ?? '—'}</b></li>
+          <li><span>Dirac (5006)</span><b>{t('sys.diracAbsent')}</b></li>
         </ul>
       </section>
 
       <section className="card">
-        <h2>Volume safety</h2>
+        <h2>{t('sys.volumeSafety')}</h2>
         <ul className="kv">
           <li><span>MAX_VOLUME_DB (Main)</span><b>{safety.maxVolumeDb} dB</b></li>
           <li><span>ZONE2_MAX_VOLUME_DB</span><b>{state.zone2Safety.maxVolumeDb} dB</b></li>
@@ -966,7 +930,7 @@ function SystemTab({ state }: { state: AppState }) {
           <li><span>CLAMP_ON_OBSERVED</span><b>{String(safety.clampOnObserved)}</b></li>
           <li><span>VOLUME_WATCHDOG</span><b>{String(safety.watchdog)}</b></li>
         </ul>
-        <p className="muted">Main and Zone 2 each have their own cap. Watchdog would override the physical remote/knob — off by default.</p>
+        <p className="muted">{t('sys.safetyNote')}</p>
       </section>
     </div>
   );
