@@ -129,6 +129,10 @@ export interface ChannelSafety {
   defaultVolumeDb?: number;
 }
 
+/** Per-feature runtime support, keyed by capability id (see nad/capabilities.ts). */
+export type CapabilityStatus = 'supported' | 'unsupported' | 'unknown';
+export type DeviceCapabilities = Record<string, CapabilityStatus>;
+
 export interface AppState {
   nad: NadState;
   zone2: Zone2State;
@@ -145,8 +149,12 @@ export interface AppState {
   bluosSourceIndex?: number;
   /** When true, auto-switch source to BluOS (+power on) on playback start. */
   autoSwitchOnPlay: boolean;
-  /** Dirac REST API was absent in Phase 0 discovery; always false here. */
+  /** Dirac control port (:5006) reachable — probed at connect. */
   diracAvailable: boolean;
+  /** Runtime-discovered per-feature support; UI shows only what's supported. */
+  capabilities: DeviceCapabilities;
+  /** True once the capability discovery window has elapsed (results are final). */
+  capabilitiesReady: boolean;
   /** Last server-side warning/clamp message, surfaced to the UI. */
   lastNotice?: string;
   updatedAt: number;

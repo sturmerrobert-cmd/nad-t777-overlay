@@ -189,3 +189,13 @@ ol.queue li { font-size: 14px; }
 .kv li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
 .kv li:last-child { border-bottom: none; }
 .kv li span { color: var(--muted); }
+
+/* Capability gating: greyed-out unsupported feature cards */
+.gate-off { position: relative; }
+.gate-off > * { opacity: 0.35; filter: grayscale(1); pointer-events: none; }
+.gate-overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  text-align: center; padding: 8px; font-size: 12px; color: var(--muted);
+  background: rgba(0, 0, 0, 0.25); border-radius: 12px; pointer-events: none; opacity: 1; filter: none;
+}
+.cap-list li b, .cap-list li .badge { flex: 0 0 auto; }

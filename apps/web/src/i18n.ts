@@ -216,6 +216,16 @@ const en: Dict = {
   'sys.diracAbsent': 'absent — panel disabled',
   'sys.volumeSafety': 'Volume safety',
   'sys.safetyNote': 'Main and Zone 2 each have their own cap. Watchdog would override the physical remote/knob — off by default.',
+  // capability discovery
+  'cap.title': 'Compatibility',
+  'cap.ready': 'discovered',
+  'cap.probing': 'probing…',
+  'cap.yes': 'yes',
+  'cap.no': 'no',
+  'cap.maybe': 'n/a',
+  'cap.summary': '{y} supported · {q} not applicable · {x} unsupported',
+  'cap.note': 'Detected at connect by querying the device. Unsupported features are hidden or greyed out so the app fits whatever NAD it finds.',
+  'cap.unsupported': 'not supported by this model',
 };
 
 const pl: Dict = {
@@ -373,6 +383,16 @@ const pl: Dict = {
   'sys.diracAbsent': 'brak — panel wyłączony',
   'sys.volumeSafety': 'Bezpieczeństwo głośności',
   'sys.safetyNote': 'Main i Strefa 2 mają osobne limity. Watchdog nadpisywałby pilota/gałkę — domyślnie wyłączony.',
+  // capability discovery
+  'cap.title': 'Kompatybilność',
+  'cap.ready': 'wykryto',
+  'cap.probing': 'wykrywanie…',
+  'cap.yes': 'tak',
+  'cap.no': 'nie',
+  'cap.maybe': 'n/d',
+  'cap.summary': '{y} obsługiwane · {q} nie dotyczy · {x} nieobsługiwane',
+  'cap.note': 'Wykrywane po połączeniu przez odpytanie urządzenia. Nieobsługiwane funkcje są ukryte lub wygaszone, dzięki czemu appka dopasowuje się do każdego NAD-a.',
+  'cap.unsupported': 'nieobsługiwane przez ten model',
 };
 
 const de: Dict = {
@@ -530,6 +550,16 @@ const de: Dict = {
   'sys.diracAbsent': 'fehlt — Panel deaktiviert',
   'sys.volumeSafety': 'Lautstärke-Schutz',
   'sys.safetyNote': 'Main und Zone 2 haben je ein eigenes Limit. Watchdog würde Fernbedienung/Regler übersteuern — standardmäßig aus.',
+  // capability discovery
+  'cap.title': 'Kompatibilität',
+  'cap.ready': 'erkannt',
+  'cap.probing': 'wird erkannt…',
+  'cap.yes': 'ja',
+  'cap.no': 'nein',
+  'cap.maybe': 'k. A.',
+  'cap.summary': '{y} unterstützt · {q} nicht zutreffend · {x} nicht unterstützt',
+  'cap.note': 'Beim Verbinden durch Abfrage des Geräts erkannt. Nicht unterstützte Funktionen werden ausgeblendet oder ausgegraut, damit die App zu jedem NAD passt.',
+  'cap.unsupported': 'von diesem Modell nicht unterstützt',
 };
 
 const STR: Record<Lang, Dict> = { en, pl, de };

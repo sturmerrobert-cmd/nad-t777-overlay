@@ -53,7 +53,7 @@ async function main(): Promise<void> {
   console.log(`  MAX_STEP_DB:   ${cfg.maxStepDb} dB`);
   console.log(`  WARN_VOLUME_DB:${cfg.WARN_VOLUME_DB ?? '(unset)'}  DEFAULT(UI):${cfg.DEFAULT_VOLUME_DB ?? '(unset)'}`);
   console.log(`  CLAMP_ON_OBSERVED:${cfg.CLAMP_ON_OBSERVED}  VOLUME_WATCHDOG:${cfg.VOLUME_WATCHDOG}`);
-  console.log(`  Dirac (5006):  absent (Phase 0) — panel disabled\n`);
+  console.log(`  Capabilities:  runtime-discovered on connect (incl. Dirac :5006 probe)\n`);
 
   const shutdown = () => {
     console.log('\nshutting down...');
