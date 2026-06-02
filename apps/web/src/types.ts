@@ -165,6 +165,9 @@ export interface QueueItem {
   album?: string;
 }
 
+export type CapabilityStatus = 'supported' | 'unsupported' | 'unknown';
+export type DeviceCapabilities = Record<string, CapabilityStatus>;
+
 export interface AppState {
   nad: NadState;
   zone2: Zone2State;
@@ -177,6 +180,8 @@ export interface AppState {
   bluosSourceIndex?: number;
   autoSwitchOnPlay: boolean;
   diracAvailable: boolean;
+  capabilities: DeviceCapabilities;
+  capabilitiesReady: boolean;
   lastNotice?: string;
   updatedAt: number;
 }

@@ -1,14 +1,86 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   api, fetchPresets, fetchUsage, usageClear, fetchTracks, fetchBrowse, fetchQueue,
   useLiveState, type ApiResult,
 } from './api';
-import type { AppState, UsageLog, UsageSegment, TrackEntry, BrowseItem, BrowseResult, QueueItem } from './types';
+import type { AppState, CapabilityStatus, UsageLog, UsageSegment, TrackEntry, BrowseItem, BrowseResult, QueueItem } from './types';
 import { t, getLang, setLang, LANGS, manual, type Lang } from './i18n';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const round1 = (n: number) => Math.round(n * 10) / 10;
 const NAD_FLOOR_DB = -80;
+
+/* ----------------------- Runtime capability gating ----------------------- */
+
+/** Status of a discovered capability ('unknown' until discovery completes). */
+function capOf(state: AppState, id: string): CapabilityStatus {
+  return state.capabilities?.[id] ?? 'unknown';
+}
+/** Only `unsupported` hides/locks a feature; `unknown` stays usable. */
+function unsupported(state: AppState, id: string): boolean {
+  return capOf(state, id) === 'unsupported';
+}
+/** True if ALL listed capabilities are definitively unsupported. */
+function allUnsupported(state: AppState, ids: string[]): boolean {
+  return ids.length > 0 && ids.every((id) => unsupported(state, id));
+}
+
+/** Tab → capabilities that justify showing it (any supported/unknown keeps it). */
+const TAB_CAPS: Partial<Record<TabId, string[]>> = {
+  audio: ['tone', 'bassMgmt', 'speakerConfig', 'dolby', 'dts'],
+  playing: ['bluos'],
+  library: ['bluos'],
+  tuner: ['tuner'],
+  zone2: ['zone2'],
+};
+
+/** Human ordering + grouping for the compatibility panel. */
+const CAP_LABELS: { id: string; label: string }[] = [
+  { id: 'power', label: 'Power' },
+  { id: 'volume', label: 'Master volume' },
+  { id: 'mute', label: 'Mute' },
+  { id: 'source', label: 'Source select' },
+  { id: 'sourceNames', label: 'Source names' },
+  { id: 'listeningMode', label: 'Listening mode' },
+  { id: 'signal', label: 'Live audio signal' },
+  { id: 'videoRes', label: 'Video resolution' },
+  { id: 'tone', label: 'Tone (bass/treble)' },
+  { id: 'bassMgmt', label: 'Bass management' },
+  { id: 'speakerConfig', label: 'Speaker config' },
+  { id: 'dolby', label: 'Dolby parameters' },
+  { id: 'dts', label: 'DTS parameters' },
+  { id: 'dimmer', label: 'Display dimmer' },
+  { id: 'sleep', label: 'Sleep timer' },
+  { id: 'autoStandby', label: 'Auto standby' },
+  { id: 'osdTemp', label: 'OSD temp display' },
+  { id: 'cec', label: 'HDMI CEC' },
+  { id: 'triggers', label: '12V triggers' },
+  { id: 'zone2', label: 'Zone 2' },
+  { id: 'zone3', label: 'Zone 3' },
+  { id: 'zone4', label: 'Zone 4' },
+  { id: 'tuner', label: 'Tuner' },
+  { id: 'bluos', label: 'BluOS streaming' },
+  { id: 'dirac', label: 'Dirac Live (:5006)' },
+];
+
+function CapBadge({ status }: { status: CapabilityStatus }) {
+  const cls = status === 'supported' ? 'ok' : status === 'unsupported' ? 'bad' : 'dim';
+  const label = status === 'supported' ? t('cap.yes') : status === 'unsupported' ? t('cap.no') : t('cap.maybe');
+  return <span className={`badge ${cls}`}>{label}</span>;
+}
+
+/** Wrap a feature card; greys it out + shows a note when unsupported. */
+function Gate({ state, cap, children }: { state: AppState; cap: string; children: ReactNode }) {
+  if (unsupported(state, cap)) {
+    return (
+      <div className="gate-off">
+        {children}
+        <div className="gate-overlay">{t('cap.unsupported')}</div>
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
 
 type TabId = 'main' | 'audio' | 'playing' | 'library' | 'tuner' | 'zone2' | 'usage' | 'system' | 'help';
 
@@ -29,6 +101,10 @@ export function App() {
   const [tab, setTab] = useState<TabId>('main');
   const [, setLangTick] = useState<Lang>(getLang());
   const changeLang = (l: Lang) => { setLang(l); setLangTick(l); };
+
+  // If the active tab becomes unsupported (device swapped/discovered), fall back.
+  const tabHidden = !!state && !!TAB_CAPS[tab] && allUnsupported(state, TAB_CAPS[tab]!);
+  useEffect(() => { if (tabHidden) setTab('main'); }, [tabHidden]);
 
   return (
     <div className="app">
@@ -52,7 +128,7 @@ export function App() {
           {state.lastNotice && <div className="notice">⚠ {state.lastNotice}</div>}
 
           <nav className="tabs">
-            {TABS.map((tb) => (
+            {TABS.filter((tb) => !(TAB_CAPS[tb.id] && allUnsupported(state, TAB_CAPS[tb.id]!))).map((tb) => (
               <button
                 key={tb.id}
                 className={`tab ${tab === tb.id ? 'active' : ''}`}
@@ -322,6 +398,7 @@ function MainTab({ state }: { state: AppState }) {
         {nad.listeningMode && <p className="muted">{t('common.current')}: {nad.listeningMode}</p>}
       </section>
 
+      <Gate state={state} cap="signal">
       <section className="card">
         <h2>{t('main.signal')}</h2>
         <ul className="kv">
@@ -334,6 +411,7 @@ function MainTab({ state }: { state: AppState }) {
           <li><span>{t('sig.bluosQuality')}</span><b>{state.nowPlaying.quality ?? '—'}{state.nowPlaying.service ? ` · ${state.nowPlaying.service}` : ''}</b></li>
         </ul>
       </section>
+      </Gate>
     </div>
     </>
   );
@@ -822,13 +900,16 @@ function AudioTab({ state }: { state: AppState }) {
   const sur = state.nad.surround ?? {};
   return (
     <div className="grid">
+      <Gate state={state} cap="tone">
       <section className="card">
         <h2>{t('audio.tone')}</h2>
         <IntSetting label={t('audio.bass')} k="Main.Bass" value={tone.bass} unit="dB" min={-10} max={10} />
         <IntSetting label={t('audio.treble')} k="Main.Treble" value={tone.treble} unit="dB" min={-10} max={10} />
         <ToggleSetting label={t('audio.toneDefeat')} k="Main.ToneDefeat" on={tone.toneDefeat} />
       </section>
+      </Gate>
 
+      <Gate state={state} cap="bassMgmt">
       <section className="card">
         <h2>{t('audio.bassMgmt')}</h2>
         <ToggleSetting label={t('audio.subwoofer')} k="Main.Speaker.Sub" on={s.subOn} />
@@ -837,7 +918,9 @@ function AudioTab({ state }: { state: AppState }) {
         <IntSetting label={t('audio.subLevel')} k="Main.Level.Sub" value={s.levelSub} unit="dB" min={-12} max={12} />
         <IntSetting label={t('audio.centerDialog')} k="Main.CenterDialog" value={s.centerDialog} min={0} max={6} />
       </section>
+      </Gate>
 
+      <Gate state={state} cap="speakerConfig">
       <section className="card">
         <h2>{t('audio.speakerConfig')}</h2>
         <EnumSetting label={t('audio.front', { hz: s.frontFreq ?? '—' })} k="Main.Speaker.Front.Config" value={s.frontConfig} options={['Large', 'Small']} />
@@ -845,7 +928,9 @@ function AudioTab({ state }: { state: AppState }) {
         <EnumSetting label={t('audio.surround', { hz: s.surroundFreq ?? '—' })} k="Main.Speaker.Surround.Config" value={s.surroundConfig} options={['Large', 'Small']} />
         <p className="muted">{t('audio.xoverNote')}</p>
       </section>
+      </Gate>
 
+      <Gate state={state} cap="dolby">
       <section className="card">
         <h2>{t('audio.surroundParams')}</h2>
         <ToggleSetting label="Dolby Center Spread" k="Main.Dolby.CenterSpread" on={sur.dolbyCenterSpread} />
@@ -860,7 +945,29 @@ function AudioTab({ state }: { state: AppState }) {
         </ul>
         <p className="muted">{t('audio.surroundNote')}</p>
       </section>
+      </Gate>
     </div>
+  );
+}
+
+/** Live compatibility matrix: what this connected NAD actually supports. */
+function CapabilityPanel({ state }: { state: AppState }) {
+  const ready = state.capabilitiesReady;
+  const n = (s: CapabilityStatus) => CAP_LABELS.filter((c) => capOf(state, c.id) === s).length;
+  return (
+    <section className="card">
+      <div className="usage-head">
+        <h2>{t('cap.title')} <span className="muted">{state.nad.model ?? 'NAD'}{state.nad.version ? ` ${state.nad.version}` : ''}</span></h2>
+        <span className={`badge ${ready ? 'ok' : 'dim'}`}>{ready ? t('cap.ready') : t('cap.probing')}</span>
+      </div>
+      <p className="muted">{t('cap.summary', { y: n('supported'), q: n('unknown'), x: n('unsupported') })}</p>
+      <ul className="kv cap-list">
+        {CAP_LABELS.map((c) => (
+          <li key={c.id}><span>{c.label}</span><CapBadge status={capOf(state, c.id)} /></li>
+        ))}
+      </ul>
+      <p className="muted" style={{ fontSize: 12 }}>{t('cap.note')}</p>
+    </section>
   );
 }
 
@@ -897,6 +1004,7 @@ function SystemTab({ state }: { state: AppState }) {
         <ToggleSetting label={t('sys.osdTemp')} k="Main.OSD.TempDisplay" on={nad.system?.osdTempDisplay} />
       </section>
 
+      <Gate state={state} cap="cec">
       <section className="card">
         <h2>{t('sys.cec')}</h2>
         <EnumSetting label="ARC" k="Main.CEC.ARC" value={nad.system?.cecArc} options={['Auto', 'On', 'Off']} />
@@ -904,6 +1012,9 @@ function SystemTab({ state }: { state: AppState }) {
         <ToggleSetting label={t('sys.cecSwitch')} k="Main.CEC.Switch" on={nad.system?.cecSwitch} />
         <ToggleSetting label={t('sys.cecPower')} k="Main.CEC.Power" on={nad.system?.cecPower} />
       </section>
+      </Gate>
+
+      <CapabilityPanel state={state} />
 
       <section className="card">
         <h2>{t('sys.device')}</h2>
@@ -914,7 +1025,7 @@ function SystemTab({ state }: { state: AppState }) {
           <li><span>{t('sys.triggers')}</span><b>{nad.system?.trigger1Out ?? '—'} / {nad.system?.trigger2Out ?? '—'}</b></li>
           <li><span>{t('sys.videoRes')}</span><b>{nad.signal?.videoResolution || '—'}</b></li>
           <li><span>{t('sig.delay')}</span><b>{nad.signal?.delay ?? '—'}</b></li>
-          <li><span>Dirac (5006)</span><b>{t('sys.diracAbsent')}</b></li>
+          <li><span>Dirac (5006)</span><b>{state.diracAvailable ? t('cap.yes') : capOf(state, 'dirac') === 'unknown' ? '…' : t('sys.diracAbsent')}</b></li>
         </ul>
       </section>
 
