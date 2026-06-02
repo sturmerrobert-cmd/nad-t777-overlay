@@ -7,7 +7,7 @@
  */
 
 import { XMLParser } from 'fast-xml-parser';
-import type { NowPlaying } from '../types.js';
+import type { BrowseItem, BrowseResult, NowPlaying, QueueItem } from '../types.js';
 
 const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
 
@@ -23,7 +23,9 @@ export class BluOSClient {
 
   constructor(opts: BluOSClientOptions) {
     this.base = `http://${opts.host}:${opts.port}`;
-    this.timeoutMs = opts.timeoutMs ?? 4000;
+    // Short timeout: BluOS's HTTP server can hang while the receiver is fine;
+    // fail fast so polling/commands degrade gracefully instead of stalling.
+    this.timeoutMs = opts.timeoutMs ?? 3000;
   }
 
   private async get(path: string): Promise<unknown> {
@@ -31,6 +33,7 @@ export class BluOSClient {
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
       const res = await fetch(this.base + path, { signal: controller.signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`); // don't parse 404/error pages as data
       const text = await res.text();
       return parser.parse(text);
     } finally {
@@ -112,5 +115,116 @@ export class BluOSClient {
   setVolumePercent(level: number): Promise<unknown> {
     const clamped = Math.max(0, Math.min(100, Math.round(level)));
     return this.get(`/Volume?level=${clamped}`);
+  }
+
+  /**
+   * Browse the BluOS menu tree (services, radio, playlists, local library).
+   * Same navigation the BluOS app uses. `key` is an item's browseKey; omit for
+   * the root menu.
+   */
+  async browse(key?: string): Promise<BrowseResult> {
+    try {
+      const path = key ? `/Browse?key=${encodeURIComponent(key)}` : '/Browse';
+      const doc = (await this.get(path)) as Record<string, any>;
+      const b = doc?.browse ?? {};
+      const items: BrowseItem[] = [];
+      // Items may sit directly under <browse> or be grouped in <category>.
+      const collect = (raw: any) => {
+        const arr = Array.isArray(raw) ? raw : raw ? [raw] : [];
+        for (const it of arr) {
+          const text = it['@_text'] ?? it['@_title'];
+          if (text === undefined) continue;
+          items.push({
+            text: String(text),
+            type: it['@_type'],
+            browseKey: it['@_browseKey'],
+            playURL: it['@_playURL'],
+            image: it['@_image'],
+          });
+        }
+      };
+      collect(b.item);
+      const cats = Array.isArray(b.category) ? b.category : b.category ? [b.category] : [];
+      for (const c of cats) collect(c.item);
+      return { serviceName: b['@_serviceName'], items };
+    } catch {
+      return { items: [] };
+    }
+  }
+
+  /** The current play queue (/Playlist). */
+  async getQueue(): Promise<QueueItem[]> {
+    try {
+      const doc = (await this.get('/Playlist')) as Record<string, any>;
+      const raw = doc?.playlist?.song;
+      const arr = Array.isArray(raw) ? raw : raw ? [raw] : [];
+      return arr.map((s: any) => ({
+        title: s.title ?? s['@_title'],
+        artist: s.art ?? s.artist ?? s['@_art'],
+        album: s.alb ?? s.album ?? s['@_alb'],
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  /** Play a browse item by its playURL (a path like "/Play?url=..."). */
+  playUrl(playURL: string): Promise<unknown> {
+    const path = playURL.startsWith('/') ? playURL : `/${playURL}`;
+    return this.get(path);
+  }
+
+  /** True if the BluOS HTTP API (port 11000) is responding. */
+  async isAlive(): Promise<boolean> {
+    try {
+      await this.get('/SyncStatus');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Attempt a remote reboot of the BluOS module.
+   *
+   * Verified against this unit: BluOS exposes NO HTTP reboot endpoint — `/reboot`
+   * and every common variant return 404, and triggering it does not reboot the
+   * module (port 11000 never drops). So we do NOT pretend: we probe and report
+   * the truth. If a future firmware adds a 200-returning reboot path, it works.
+   */
+  async reboot(): Promise<{ ok: boolean; detail: string }> {
+    if (!(await this.isAlive())) {
+      return {
+        ok: false,
+        detail:
+          'BluOS HTTP API (port 11000) is not responding. Power-cycle the receiver from the rear ' +
+          'switch (off ~30–60 s, then on).',
+      };
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      const res = await fetch(this.base + '/reboot', { signal: controller.signal });
+      if (res.ok) {
+        return { ok: true, detail: 'Reboot requested. BluOS should drop off and return in ~1–2 min.' };
+      }
+      return {
+        ok: false,
+        detail:
+          `This BluOS module has no remote-reboot API (HTTP ${res.status}). Reboot it from the ` +
+          'BluOS app (Settings → Players → your player → Reboot) or power-cycle the receiver.',
+      };
+    } catch (e) {
+      // A real reboot can drop the connection mid-response — but on this unit /reboot
+      // is a 404, so an abort/network error here is NOT a reboot. Report honestly.
+      return {
+        ok: false,
+        detail:
+          `Could not confirm a reboot (${(e as Error).message}). Reboot from the BluOS app or ` +
+          'power-cycle the receiver.',
+      };
+    } finally {
+      clearTimeout(timer);
+    }
   }
 }

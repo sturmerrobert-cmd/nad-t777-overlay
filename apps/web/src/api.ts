@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AppState } from './types';
+import type { AppState, BrowseResult, QueueItem, TrackEntry, UsageLog } from './types';
 
 export interface ApiResult {
   ok: boolean;
@@ -44,11 +44,61 @@ export const api = {
   tunerPreset: (n: number) => post('/api/tuner/preset', { n }),
   tunerMute: (on: boolean) => post('/api/tuner/mute', { on }),
   tunerTune: (dir: 'up' | 'down') => post('/api/tuner/tune', { dir }),
+  // Auto-switch source to BluOS on playback + manual activate (never volume)
+  autoswitch: (on: boolean) => post('/api/autoswitch', { on }),
+  bluosActivate: () => post('/api/bluos/activate', {}),
+  bluosReboot: () => post('/api/bluos/reboot', {}),
+  // BluOS browse / play (same control as the BluOS app)
+  bluosPlayUrl: (url: string) => post('/api/bluos/play-url', { url }),
+  tracksClear: () => post('/api/tracks/clear', {}),
+  // Generic allowlisted settings (never volume — server refuses volume keys)
+  setting: (key: string, value: string | boolean | number) => post('/api/setting', { key, value }),
+  settingStep: (key: string, delta: number) => post('/api/setting/step', { key, delta }),
   // BluOS
   bluosPreset: (id: number) => post('/api/bluos/preset', { id }),
   bluosTransport: (action: 'play' | 'pause' | 'skip' | 'back') =>
     post('/api/bluos/transport', { action }),
 };
+
+export async function fetchUsage(limit = 200): Promise<UsageLog> {
+  try {
+    const res = await fetch(`/api/usage?limit=${limit}`);
+    return (await res.json()) as UsageLog;
+  } catch {
+    return { current: null, segments: [] };
+  }
+}
+
+export function usageClear(): Promise<ApiResult> {
+  return post('/api/usage/clear', {});
+}
+
+export async function fetchTracks(limit = 1000): Promise<TrackEntry[]> {
+  try {
+    const res = await fetch(`/api/tracks?limit=${limit}`);
+    return ((await res.json()) as { tracks: TrackEntry[] }).tracks ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchBrowse(key?: string): Promise<BrowseResult> {
+  try {
+    const res = await fetch(`/api/bluos/browse${key ? `?key=${encodeURIComponent(key)}` : ''}`);
+    return (await res.json()) as BrowseResult;
+  } catch {
+    return { items: [] };
+  }
+}
+
+export async function fetchQueue(): Promise<QueueItem[]> {
+  try {
+    const res = await fetch('/api/bluos/queue');
+    return ((await res.json()) as { queue: QueueItem[] }).queue ?? [];
+  } catch {
+    return [];
+  }
+}
 
 export async function fetchPresets(): Promise<Array<{ id: number; name: string }>> {
   try {

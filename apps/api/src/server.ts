@@ -12,19 +12,24 @@ import { z } from 'zod';
 import type { NadClient } from './nad/client.js';
 import type { BluOSClient } from './bluos/client.js';
 import type { VolumeService } from './volume/service.js';
+import type { UsageLogger } from './usage/logger.js';
+import type { TrackLogger } from './tracks/logger.js';
 import type { StateManager } from './state.js';
 import type { AppConfig } from './config.js';
+import { SETTINGS, applySetting, stepSetting } from './settings.js';
 
 interface Deps {
   cfg: AppConfig;
   nad: NadClient;
   bluos: BluOSClient;
   volume: VolumeService;
+  usage: UsageLogger;
+  tracks: TrackLogger;
   state: StateManager;
 }
 
 export async function buildServer(deps: Deps) {
-  const { nad, bluos, volume, state } = deps;
+  const { nad, bluos, volume, usage, tracks, state } = deps;
   const app = Fastify({ logger: { level: 'info' } });
 
   await app.register(cors, { origin: true });
@@ -183,21 +188,115 @@ export async function buildServer(deps: Deps) {
     return cmd(() => nad.tuneFm(b.data.dir), reply);
   });
 
+  // ---------- Generic device settings (allowlisted; NEVER volume) ----------
+  app.get('/api/settings/catalog', async () => ({ settings: SETTINGS }));
+
+  app.post('/api/setting', async (req, reply) => {
+    const b = z
+      .object({ key: z.string(), value: z.union([z.string(), z.boolean(), z.number()]) })
+      .safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'key + value required' });
+    const r = applySetting(nad, b.data.key, b.data.value as string | boolean);
+    return r.ok ? r : reply.code(r.error?.startsWith('refused') ? 403 : 409).send(r);
+  });
+
+  app.post('/api/setting/step', async (req, reply) => {
+    const b = z.object({ key: z.string(), delta: z.number() }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'key + delta required' });
+    const r = stepSetting(nad, b.data.key, b.data.delta);
+    return r.ok ? r : reply.code(r.error?.startsWith('refused') ? 403 : 409).send(r);
+  });
+
+  // ---------- Usage log (source + time + volume, from polling) ----------
+  app.get('/api/usage', async (req) => {
+    const q = req.query as { limit?: string };
+    const limit = q.limit ? Math.max(1, Math.min(1000, Number(q.limit) || 200)) : 200;
+    return usage.getLog(limit);
+  });
+
+  app.post('/api/usage/clear', async () => {
+    await usage.clear();
+    return { ok: true };
+  });
+
+  // ---------- Captured track list (metadata only — your "shopping list") ----------
+  app.get('/api/tracks', async (req) => {
+    const q = req.query as { limit?: string };
+    const limit = q.limit ? Math.max(1, Math.min(5000, Number(q.limit) || 1000)) : 1000;
+    return { tracks: tracks.list(limit) };
+  });
+
+  app.get('/api/tracks/export.csv', async (_req, reply) => {
+    reply.header('content-type', 'text/csv; charset=utf-8');
+    reply.header('content-disposition', 'attachment; filename="nad-tracklist.csv"');
+    return tracks.toCsv();
+  });
+
+  app.post('/api/tracks/clear', async () => {
+    await tracks.clear();
+    return { ok: true };
+  });
+
+  // ---------- BluOS browse / queue / play (same control the BluOS app uses) ----------
+  app.get('/api/bluos/browse', async (req) => {
+    const q = req.query as { key?: string };
+    return bluos.browse(q.key);
+  });
+
+  app.get('/api/bluos/queue', async () => ({ queue: await bluos.getQueue() }));
+
+  app.post('/api/bluos/play-url', async (req, reply) => {
+    const b = z.object({ url: z.string().min(1) }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'url required' });
+    try {
+      await bluos.playUrl(b.data.url);
+      return { ok: true };
+    } catch {
+      return reply.code(503).send({ ok: false, error: 'BluOS unreachable' });
+    }
+  });
+
+  // ---------- BluOS reboot (only works while the API is responsive) ----------
+  app.post('/api/bluos/reboot', async () => {
+    return bluos.reboot();
+  });
+
+  // ---------- BluOS auto-switch + manual activate ----------
+  app.post('/api/autoswitch', async (req, reply) => {
+    const b = z.object({ on: z.boolean() }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ ok: false, error: 'on:boolean required' });
+    state.setAutoSwitch(b.data.on);
+    return { ok: true, autoSwitchOnPlay: b.data.on };
+  });
+
+  // Manually route the receiver to BluOS (power on + select source). No volume change.
+  app.post('/api/bluos/activate', async () => {
+    return state.activateBluos('manual');
+  });
+
   // ---------- BluOS presets + transport ----------
   app.get('/api/bluos/presets', async () => ({ presets: await bluos.getPresets() }));
 
   app.post('/api/bluos/preset', async (req, reply) => {
     const b = z.object({ id: z.number().int() }).safeParse(req.body);
     if (!b.success) return reply.code(400).send({ ok: false, error: 'id:int required' });
-    await bluos.loadPreset(b.data.id);
-    return { ok: true };
+    try {
+      await bluos.loadPreset(b.data.id);
+      return { ok: true };
+    } catch {
+      return reply.code(503).send({ ok: false, error: 'BluOS unreachable' });
+    }
   });
 
   app.post('/api/bluos/transport', async (req, reply) => {
     const b = z.object({ action: z.enum(['play', 'pause', 'skip', 'back']) }).safeParse(req.body);
     if (!b.success) return reply.code(400).send({ ok: false, error: 'action required' });
-    await bluos[b.data.action]();
-    return { ok: true };
+    try {
+      await bluos[b.data.action]();
+      return { ok: true };
+    } catch {
+      return reply.code(503).send({ ok: false, error: 'BluOS unreachable' });
+    }
   });
 
   return app;

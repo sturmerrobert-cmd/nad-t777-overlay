@@ -32,15 +32,41 @@ The UI is organized into a tabbed menu:
   The signal info comes from the receiver's own decode (`Main.Audio.CODEC`,
   `Main.Audio.Channels`, `Main.Audio.Rate`, `Main.Audio.Lock`) plus BluOS
   `quality`/`service`.
-- **Odtwarzanie (Now Playing):** BluOS now-playing card from `/SyncStatus` +
-  `/Status`, transport (play/pause/skip/back), presets.
+- **Odtwarzanie (Now Playing):** BluOS now-playing card, transport, presets, plus
+  **"Play through the NAD"**: a manual "Play on NAD now" button and an opt-in
+  **auto-switch** — when BluOS playback starts (e.g. you hit play in Spotify), the
+  receiver is powered on and its source is switched to BluOS so you actually hear
+  it. This **never changes volume** (G2); it only sets power + source. Default off
+  (`AUTOSWITCH_ON_PLAY`, runtime-toggleable in the UI).
 - **Tuner:** band (FM/AM), tune ◀/▶, FM presets, mute — per the NAD V2.x reference.
   These respond only when the tuner is the active source; the tab shows a hint and
   a one-tap "switch to Tuner" when it isn't.
-- **Strefa 2 (Zone 2):** power, source, mute, and **guarded Zone 2 volume** — the
-  Zone 2 volume path goes through the **same** cap/step guard as Main.
-- **System:** display dimmer (on/off), sleep timer (off/15/30/45/60/90 min),
-  device info, and the live volume-safety settings.
+- **Dźwięk (Audio):** tone (bass/treble + tone defeat), bass management (sub on/off,
+  enhanced bass, center/sub level, center dialog), speaker config (Large/Small +
+  crossover shown), and surround params (Dolby/DTS — toggles settable, rest shown).
+- **Strefa 2 (Zone 2):** power, source, mute, **guarded Zone 2 volume** (same cap/step
+  guard as Main), plus output mode (Variable/Fixed; fixed level shown with a warning
+  that it is not bounded by the cap).
+- **Biblioteka (Library):** a BluOS browser (radio, playlists, services, and your
+  local NAS/USB library when present) with breadcrumb navigation and one-tap play —
+  the same control the BluOS app has. Plus **"My track list"**: distinct tracks
+  captured from now-playing (**titles/artists only — never audio**), exportable to
+  CSV. A legal "shopping list" to buy the files (Bandcamp/Qobuz/7digital) or add to a
+  NAS for local playback. The "Odtwarzanie" tab also shows the current play queue.
+- **Log użycia (Usage):** what played, for how long, and how loud — derived purely
+  from polling. A new segment starts when the source changes or power toggles;
+  each segment records start/end, duration, and volume min/avg/max/last. History is
+  persisted to a JSONL file (`USAGE_LOG_FILE`, default `apps/api/data/usage-log.jsonl`,
+  gitignored) so it survives restarts. Clear button included.
+- **System:** display dimmer, sleep timer, auto-standby, OSD temp display, HDMI-CEC
+  (ARC/audio/switch/power), device info (model/firmware/triggers/video resolution/
+  A/V delay), and the live volume-safety settings.
+
+All non-volume settings go through a single allowlisted endpoint
+(`POST /api/setting`, `POST /api/setting/step`) backed by a catalog in
+`apps/api/src/settings.ts`. That path **hard-refuses any key containing "Volume"**,
+so it can never be used to bypass the volume guard. The catalog is browsable at
+`GET /api/settings/catalog`.
 
 All command surfaces were grounded against the live device in discovery (source
 names, dimmer, sleep, Zone 2 all confirmed). Tuner detail keys were not verified

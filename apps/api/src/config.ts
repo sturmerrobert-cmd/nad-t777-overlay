@@ -58,6 +58,21 @@ const schema = z.object({
   // (overrides the physical remote/knob — that is why it defaults off).
   VOLUME_WATCHDOG: boolDefault(false),
 
+  // Auto-switch the NAD source to BluOS (and power on) when BluOS playback
+  // starts. Never touches volume. Runtime-toggleable; this is just the default.
+  AUTOSWITCH_ON_PLAY: boolDefault(false),
+
+  // Usage-log JSONL file (relative to the API working dir, apps/api).
+  USAGE_LOG_FILE: z.preprocess(
+    (v) => (v === undefined || v === '' ? 'data/usage-log.jsonl' : v),
+    z.string(),
+  ),
+  // Captured-tracklist JSONL file (metadata only — titles/artists, no audio).
+  TRACKS_LOG_FILE: z.preprocess(
+    (v) => (v === undefined || v === '' ? 'data/tracks.jsonl' : v),
+    z.string(),
+  ),
+
   NAD_PORT: numDefault(23),
   BLUOS_PORT: numDefault(11000),
   HTTP_PORT: numDefault(8787),
