@@ -13,6 +13,8 @@
 
 import net from 'node:net';
 import { EventEmitter } from 'node:events';
+import { CAPABILITY_PROBE_KEYS } from './capabilities.js';
+import { resolveKey } from './aliases.js';
 
 export interface NadClientOptions {
   host: string;
@@ -162,6 +164,7 @@ export class NadClient extends EventEmitter {
       'Main.AutoStandby',
       'Main.OSD.TempDisplay',
       'Main.CEC.ARC',
+      'Main.CEC.Arc', // first-gen casing of Main.CEC.ARC
       'Main.CEC.Audio',
       'Main.CEC.Power',
       'Main.CEC.Switch',
@@ -177,6 +180,7 @@ export class NadClient extends EventEmitter {
       'Tuner.Band',
       'Tuner.FM.Frequency',
       'Tuner.FM.Preset',
+      'Tuner.Preset', // first-gen alias of Tuner.FM.Preset
       'Tuner.FM.Mute',
     ]) {
       this.write(`${k}?`);
@@ -187,6 +191,16 @@ export class NadClient extends EventEmitter {
   querySourceNames(): void {
     if (!this.connected) return;
     for (let i = 1; i <= 12; i++) this.write(`Source${i}.Name?`);
+  }
+
+  /**
+   * Fire a `?` for every capability-probe key (once at connect). Unsupported
+   * keys stay silent; supported ones populate `values`. The state manager reads
+   * the result after a short discovery window to decide which UI to show.
+   */
+  probeCapabilities(): void {
+    if (!this.connected) return;
+    for (const k of CAPABILITY_PROBE_KEYS) this.write(`${k}?`);
   }
 
   /** Wait until a specific key reports a value (or time out). Used at startup. */
@@ -273,7 +287,9 @@ export class NadClient extends EventEmitter {
   }
   setTunerFmPreset(n: number): void {
     if (!Number.isInteger(n) || n < 1) throw new Error(`invalid FM preset: ${n}`);
-    this.write(`Tuner.FM.Preset=${n}`);
+    // First-gen receivers name this `Tuner.Preset`; resolve to whichever the
+    // connected device actually speaks (falls back to the modern name on V3).
+    this.write(`${resolveKey(this.values, 'Tuner.FM.Preset')}=${n}`);
   }
   setTunerMute(on: boolean): void {
     this.write(`Tuner.FM.Mute=${on ? 'On' : 'Off'}`);
@@ -291,7 +307,9 @@ export class NadClient extends EventEmitter {
     if (/volume/i.test(key)) {
       throw new Error(`setSetting refused for volume key "${key}" — use the guarded VolumeService`);
     }
-    this.write(`${key}=${value}`);
+    // Write to whichever spelling the connected device speaks (e.g. first-gen
+    // `Main.CEC.Arc` vs V3 `Main.CEC.ARC`). No-op for keys without an alias.
+    this.write(`${resolveKey(this.values, key)}=${value}`);
   }
 
   /** RAW absolute volume set — call ONLY from the guarded VolumeService. */
