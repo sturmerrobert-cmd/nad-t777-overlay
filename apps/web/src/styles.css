@@ -1,0 +1,88 @@
+:root {
+  --bg: #0e1116;
+  --card: #171c24;
+  --line: #262d38;
+  --text: #e6e9ee;
+  --muted: #8b94a3;
+  --accent: #4aa3ff;
+  --ok: #38c172;
+  --bad: #e3342f;
+  --warn: #f59e0b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+.app { max-width: 1100px; margin: 0 auto; padding: 20px; }
+
+.topbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+h1 { font-size: 22px; margin: 8px 0; }
+h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 12px; }
+.muted { color: var(--muted); }
+
+.badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.badge { font-size: 12px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); }
+.badge.ok { background: rgba(56,193,114,.12); color: var(--ok); border-color: rgba(56,193,114,.4); }
+.badge.bad { background: rgba(227,52,47,.12); color: var(--bad); border-color: rgba(227,52,47,.4); }
+.badge.dim { color: var(--muted); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 14px; }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+
+.row { display: flex; gap: 8px; align-items: center; }
+.row.center { justify-content: center; }
+.row.wrap, .sources, .np-tags { flex-wrap: wrap; }
+
+button { cursor: pointer; font: inherit; }
+.pill {
+  background: #20283340; border: 1px solid var(--line); color: var(--text);
+  border-radius: 8px; padding: 8px 12px; transition: .12s;
+}
+.pill:hover { border-color: var(--accent); }
+.pill.active { background: var(--accent); color: #06121f; border-color: var(--accent); font-weight: 600; }
+.pill.warn.active, .pill.warn { border-color: var(--warn); }
+
+.sources { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.sources .pill { padding: 8px 6px; font-size: 13px; text-align: center; }
+
+/* Volume */
+.volume .vol-readout { text-align: center; margin: 6px 0 14px; }
+.vol-readout .big { font-size: 46px; font-weight: 700; }
+.vol-readout .unit { font-size: 18px; color: var(--muted); margin-left: 6px; }
+.step {
+  background: #202833; border: 1px solid var(--line); color: var(--text);
+  border-radius: 8px; padding: 10px 14px; min-width: 52px; font-weight: 600;
+}
+.step:hover:not(:disabled) { border-color: var(--accent); }
+.step:disabled { opacity: .5; cursor: not-allowed; }
+.slider-wrap { margin-top: 16px; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.slider-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 4px; }
+.confirm { margin-top: 12px; padding: 10px; border: 1px solid var(--warn); border-radius: 8px; background: rgba(245,158,11,.08); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.reject { color: var(--bad); margin: 10px 0 0; }
+
+/* Safety banner */
+.safety { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin-top: 12px; font-size: 13px; }
+.safety.alert { border-color: var(--bad); background: rgba(227,52,47,.08); }
+.safety b { color: var(--text); }
+.alert-text { color: var(--bad); font-weight: 600; }
+
+.notice { margin-top: 10px; padding: 8px 12px; border-radius: 8px; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.4); color: var(--warn); font-size: 13px; }
+
+/* Now playing */
+.nowplaying .np { display: flex; gap: 12px; margin-bottom: 12px; }
+.art { width: 72px; height: 72px; border-radius: 8px; object-fit: cover; background: #0a0d12; }
+.np-title { font-weight: 600; }
+.np-sub { color: var(--muted); font-size: 13px; }
+.np-sub.dim { opacity: .7; }
+.tag { font-size: 11px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.np-tags { display: flex; gap: 6px; margin-top: 6px; }
+
+.dirac-note { margin-top: 16px; font-size: 13px; font-style: italic; }
