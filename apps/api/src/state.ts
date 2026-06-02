@@ -267,7 +267,7 @@ export class StateManager extends EventEmitter {
       system: {
         autoStandby: onOff('Main.AutoStandby'),
         osdTempDisplay: onOff('Main.OSD.TempDisplay'),
-        cecArc: v.get('Main.CEC.ARC'),
+        cecArc: getAliased(v, 'Main.CEC.ARC'),
         cecAudio: onOff('Main.CEC.Audio'),
         cecPower: onOff('Main.CEC.Power'),
         cecSwitch: onOff('Main.CEC.Switch'),
