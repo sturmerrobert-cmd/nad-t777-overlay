@@ -86,3 +86,54 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .np-tags { display: flex; gap: 6px; margin-top: 6px; }
 
 .dirac-note { margin-top: 16px; font-size: 13px; font-style: italic; }
+
+/* NAD front-panel display (VFD) */
+.vfd {
+  background: linear-gradient(180deg, #04130c, #020a06);
+  border: 1px solid #0c3; border-color: #0a2a1a;
+  border-radius: 10px; padding: 16px 20px; margin: 14px 0 4px;
+  box-shadow: inset 0 0 22px rgba(0,255,140,.06);
+  font-family: "DejaVu Sans Mono", ui-monospace, Menlo, Consolas, monospace;
+  color: #3cff9e; text-shadow: 0 0 7px rgba(60,255,158,.55);
+  min-height: 96px; display: flex; flex-direction: column; justify-content: center; gap: 8px;
+}
+.vfd-dim { filter: brightness(.6); }
+.vfd-off { color: #1c5c3c; text-shadow: none; }
+.vfd-row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+.vfd-top { font-size: 22px; font-weight: 700; letter-spacing: .04em; }
+.vfd-src { text-transform: uppercase; }
+.vfd-vol { font-variant-numeric: tabular-nums; }
+.vfd-mid { font-size: 15px; color: #66ffbe; opacity: .9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vfd-bot { font-size: 12px; letter-spacing: .08em; color: #2fd488; text-transform: uppercase; }
+.vfd-sig { text-align: right; }
+.vfd-standby { justify-content: center; font-size: 20px; letter-spacing: .3em; }
+
+/* Tabs / menu */
+.tabs { display: flex; gap: 4px; margin: 14px 0 0; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.tab {
+  background: transparent; border: none; color: var(--muted);
+  padding: 10px 16px; border-bottom: 2px solid transparent; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); border-bottom-color: var(--accent); }
+.tab .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); display: inline-block; }
+.tab .dot.alert { background: var(--bad); }
+.panel { margin-top: 16px; }
+
+/* Over-cap volume card */
+.volume.overcap { border-color: var(--bad); }
+.overcap-tag { display: block; font-size: 12px; color: var(--bad); margin-top: 4px; }
+
+/* Tuner */
+.tuner-readout { text-align: center; margin: 8px 0 14px; }
+.tuner-readout .big { font-size: 34px; font-weight: 700; }
+.tuner-readout .unit { font-size: 16px; color: var(--muted); margin-left: 8px; }
+.hint { font-size: 13px; color: var(--muted); margin-bottom: 12px; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 8px; }
+.step:disabled, .pill:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Key-value lists */
+.kv { list-style: none; margin: 0; padding: 0; }
+.kv li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.kv li:last-child { border-bottom: none; }
+.kv li span { color: var(--muted); }

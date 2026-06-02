@@ -11,6 +11,38 @@ export interface NadState {
   /** Source index 1-12. */
   source?: number;
   listeningMode?: string;
+  /** Front-panel display dimming (verified value: "Off"). */
+  dimmer?: string;
+  /** Sleep timer in minutes; 0 = off. */
+  sleepMinutes?: number;
+  /** Incoming audio signal/format, as the receiver decodes it. */
+  signal?: AudioSignal;
+}
+
+export interface AudioSignal {
+  codec?: string; // PCM | Dolby Digital | DTS | ...  (Main.Audio.CODEC)
+  channels?: string; // e.g. "2/0.0", "3/2.1"          (Main.Audio.Channels)
+  rateKhz?: string; // sample rate in kHz               (Main.Audio.Rate)
+  lock?: string; // signal lock Yes/No                  (Main.Audio.Lock)
+}
+
+export interface Zone2State {
+  power?: 'On' | 'Off';
+  source?: number;
+  /** Zone 2 volume in dB — guarded by the SAME cap/step as Main. */
+  volumeDb?: number;
+  mute?: boolean;
+  /** Raised when Zone 2 observed volume is above the cap. */
+  overCapAlert: boolean;
+}
+
+export interface TunerState {
+  /** True when the active Main source is the tuner (controls respond only then). */
+  active: boolean;
+  band?: string; // FM | AM
+  fmFrequency?: string;
+  fmPreset?: string;
+  mute?: boolean;
 }
 
 export interface NowPlaying {
@@ -34,14 +66,30 @@ export interface VolumeSafety {
   defaultVolumeDb?: number;
   clampOnObserved: boolean;
   watchdog: boolean;
-  /** Raised when observed volume is above the cap (rule 5). */
+  /** Raised when observed Main volume is above the cap (rule 5). */
   overCapAlert: boolean;
+}
+
+/** Per-channel guard settings (Zone 2 has its own cap). */
+export interface ChannelSafety {
+  maxVolumeDb: number;
+  maxStepDb: number;
+  warnVolumeDb?: number;
+  defaultVolumeDb?: number;
 }
 
 export interface AppState {
   nad: NadState;
+  zone2: Zone2State;
+  tuner: TunerState;
   nowPlaying: NowPlaying;
   safety: VolumeSafety;
+  /** Zone 2's own guard settings (separate cap). */
+  zone2Safety: ChannelSafety;
+  /** Source index → display name (from the device, UI-overridable). */
+  sourceNames: Record<string, string>;
+  /** Which source index is the tuner (from device names), if any. */
+  tunerSourceIndex?: number;
   /** Dirac REST API was absent in Phase 0 discovery; always false here. */
   diracAvailable: boolean;
   /** Last server-side warning/clamp message, surfaced to the UI. */
@@ -49,18 +97,7 @@ export interface AppState {
   updatedAt: number;
 }
 
-/** Source index → display name. Editable in the UI later; sane defaults here. */
-export const DEFAULT_SOURCE_NAMES: Record<number, string> = {
-  1: 'Source 1',
-  2: 'Source 2',
-  3: 'Source 3',
-  4: 'Source 4',
-  5: 'Source 5',
-  6: 'Source 6',
-  7: 'Source 7',
-  8: 'Source 8',
-  9: 'Source 9',
-  10: 'Source 10',
-  11: 'Source 11',
-  12: 'BluOS / Stream',
-};
+/** Fallback source labels when the device has not reported a name yet. */
+export const DEFAULT_SOURCE_NAMES: Record<number, string> = Object.fromEntries(
+  Array.from({ length: 12 }, (_, i) => [i + 1, `Source ${i + 1}`]),
+);
