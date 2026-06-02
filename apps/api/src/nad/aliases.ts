@@ -7,8 +7,9 @@
  * exist on a generation are handled by capability discovery (greyed out in the
  * UI), never aliased.
  *
- * Verified against the 2012 command lists:
+ * Verified against the 2012 command lists (incl. M15HD):
  *   - `Tuner.FM.Preset` (V3)  ==  `Tuner.Preset` (first-gen, Range 1-40)
+ *   - `Main.CEC.ARC`     (V3)  ==  `Main.CEC.Arc` (first-gen — case only)
  *
  * NOT aliased — different feature despite a similar name:
  *   - `Main.AutoStandby` (auto power-off timer) is NOT `Main.ControlStandby`
@@ -18,6 +19,9 @@
 /** canonical key (what the app uses) → [canonical, ...older synonyms]. */
 export const KEY_ALIASES: Record<string, string[]> = {
   'Tuner.FM.Preset': ['Tuner.FM.Preset', 'Tuner.Preset'],
+  // First-gen firmware spells this `Main.CEC.Arc` (mixed case); V3 uses `ARC`.
+  // Parsers/maps are case-sensitive, so this is a real mismatch, not cosmetic.
+  'Main.CEC.ARC': ['Main.CEC.ARC', 'Main.CEC.Arc'],
 };
 
 /**

@@ -164,6 +164,7 @@ export class NadClient extends EventEmitter {
       'Main.AutoStandby',
       'Main.OSD.TempDisplay',
       'Main.CEC.ARC',
+      'Main.CEC.Arc', // first-gen casing of Main.CEC.ARC
       'Main.CEC.Audio',
       'Main.CEC.Power',
       'Main.CEC.Switch',
@@ -306,7 +307,9 @@ export class NadClient extends EventEmitter {
     if (/volume/i.test(key)) {
       throw new Error(`setSetting refused for volume key "${key}" — use the guarded VolumeService`);
     }
-    this.write(`${key}=${value}`);
+    // Write to whichever spelling the connected device speaks (e.g. first-gen
+    // `Main.CEC.Arc` vs V3 `Main.CEC.ARC`). No-op for keys without an alias.
+    this.write(`${resolveKey(this.values, key)}=${value}`);
   }
 
   /** RAW absolute volume set — call ONLY from the guarded VolumeService. */
