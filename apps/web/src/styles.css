@@ -132,6 +132,49 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .hint { font-size: 13px; color: var(--muted); margin-bottom: 12px; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 8px; }
 .step:disabled, .pill:disabled { opacity: .45; cursor: not-allowed; }
 
+/* Usage log */
+.grid.one { grid-template-columns: 1fr; }
+.usage-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.table-wrap { overflow-x: auto; margin-top: 8px; }
+table.usage { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.usage th { text-align: left; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.usage td { padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.usage td.num { font-variant-numeric: tabular-nums; }
+table.usage tr.usage-open td { background: rgba(74,163,255,.08); }
+.live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); margin-left: 6px; vertical-align: middle; }
+
+/* Big primary action (Play on NAD) */
+.big-action {
+  width: 100%; padding: 14px; border-radius: 10px; font-size: 17px; font-weight: 700;
+  background: var(--accent); color: #06121f; border: none; letter-spacing: .02em;
+}
+.big-action:hover:not(:disabled) { filter: brightness(1.08); }
+.big-action:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Setting rows (Audio / System tabs) */
+.setting-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.setting-row:last-of-type { border-bottom: none; }
+.setting-row > span:first-child { color: var(--muted); font-size: 13px; }
+.seg { display: inline-flex; gap: 6px; align-items: center; }
+.seg .pill { padding: 5px 10px; font-size: 13px; }
+.step.sm { min-width: 36px; padding: 5px 10px; }
+.setting-val { min-width: 56px; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* Library browse */
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin-bottom: 12px; }
+.crumb { background: none; border: none; color: var(--accent); padding: 2px 4px; font: inherit; cursor: pointer; }
+.crumb:hover { text-decoration: underline; }
+.crumb-sep { color: var(--muted); margin: 0 2px; }
+.browse-list { display: flex; flex-direction: column; gap: 4px; }
+.browse-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: left; background: #20283340; border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 10px 12px; }
+.browse-item:hover { border-color: var(--accent); }
+.browse-item.audio .bi-act { color: var(--ok); }
+.bi-act { color: var(--muted); font-size: 13px; }
+
+/* Queue */
+ol.queue { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+ol.queue li { font-size: 14px; }
+
 /* Key-value lists */
 .kv { list-style: none; margin: 0; padding: 0; }
 .kv li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 13px; }

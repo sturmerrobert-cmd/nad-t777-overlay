@@ -12,6 +12,10 @@ export interface NadState {
   dimmer?: string;
   sleepMinutes?: number;
   signal?: AudioSignal;
+  tone?: ToneState;
+  setup?: SetupState;
+  surround?: SurroundState;
+  system?: SystemState;
 }
 
 export interface AudioSignal {
@@ -19,6 +23,50 @@ export interface AudioSignal {
   channels?: string;
   rateKhz?: string;
   lock?: string;
+  delay?: string;
+  videoResolution?: string;
+}
+
+export interface ToneState {
+  bass?: number;
+  treble?: number;
+  toneDefeat?: boolean;
+}
+
+export interface SetupState {
+  subOn?: boolean;
+  enhancedBass?: boolean;
+  levelCenter?: number;
+  levelSub?: number;
+  centerDialog?: number;
+  frontConfig?: string;
+  frontFreq?: string;
+  centerConfig?: string;
+  centerFreq?: string;
+  surroundConfig?: string;
+  surroundFreq?: string;
+}
+
+export interface SurroundState {
+  dolbyCenterSpread?: boolean;
+  dolbyCenterWidth?: string;
+  dolbyDrc?: string;
+  dolbyPanorama?: boolean;
+  dolbyDimension?: string;
+  dtsCenterGain?: string;
+  dtsDrc?: string;
+  dtsDialogControl?: string;
+}
+
+export interface SystemState {
+  autoStandby?: boolean;
+  osdTempDisplay?: boolean;
+  cecArc?: string;
+  cecAudio?: boolean;
+  cecPower?: boolean;
+  cecSwitch?: boolean;
+  trigger1Out?: string;
+  trigger2Out?: string;
 }
 
 export interface Zone2State {
@@ -27,6 +75,8 @@ export interface Zone2State {
   volumeDb?: number;
   mute?: boolean;
   overCapAlert: boolean;
+  volumeControl?: string;
+  volumeFixed?: number;
 }
 
 export interface TunerState {
@@ -67,6 +117,54 @@ export interface ChannelSafety {
   defaultVolumeDb?: number;
 }
 
+export interface UsageSegment {
+  source: number;
+  sourceName: string;
+  startedAt: number;
+  endedAt: number;
+  durationSec: number;
+  volMinDb?: number;
+  volMaxDb?: number;
+  volAvgDb?: number;
+  volLastDb?: number;
+  samples: number;
+  open?: boolean;
+}
+
+export interface UsageLog {
+  current: UsageSegment | null;
+  segments: UsageSegment[];
+}
+
+export interface TrackEntry {
+  title: string;
+  artist?: string;
+  album?: string;
+  service?: string;
+  firstSeen: number;
+  lastSeen: number;
+  plays: number;
+}
+
+export interface BrowseItem {
+  text: string;
+  type?: string;
+  browseKey?: string;
+  playURL?: string;
+  image?: string;
+}
+
+export interface BrowseResult {
+  serviceName?: string;
+  items: BrowseItem[];
+}
+
+export interface QueueItem {
+  title?: string;
+  artist?: string;
+  album?: string;
+}
+
 export interface AppState {
   nad: NadState;
   zone2: Zone2State;
@@ -76,6 +174,8 @@ export interface AppState {
   zone2Safety: ChannelSafety;
   sourceNames: Record<string, string>;
   tunerSourceIndex?: number;
+  bluosSourceIndex?: number;
+  autoSwitchOnPlay: boolean;
   diracAvailable: boolean;
   lastNotice?: string;
   updatedAt: number;

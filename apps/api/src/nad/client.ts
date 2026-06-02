@@ -131,10 +131,48 @@ export class NadClient extends EventEmitter {
       'Main.Audio.Channels',
       'Main.Audio.Rate',
       'Main.Audio.Lock',
+      'Main.Audio.Delay',
+      'Main.Video.Resolution',
+      // Tone
+      'Main.Bass',
+      'Main.Treble',
+      'Main.ToneDefeat',
+      // Bass management / speaker setup
+      'Main.Speaker.Sub',
+      'Main.EnhancedBass',
+      'Main.Level.Center',
+      'Main.Level.Sub',
+      'Main.CenterDialog',
+      'Main.Speaker.Front.Config',
+      'Main.Speaker.Front.Frequency',
+      'Main.Speaker.Center.Config',
+      'Main.Speaker.Center.Frequency',
+      'Main.Speaker.Surround.Config',
+      'Main.Speaker.Surround.Frequency',
+      // Surround params
+      'Main.Dolby.CenterSpread',
+      'Main.Dolby.CenterWidth',
+      'Main.Dolby.DRC',
+      'Main.Dolby.Panorama',
+      'Main.Dolby.Dimension',
+      'Main.DTS.CenterGain',
+      'Main.DTS.DRC',
+      'Main.DTS.DialogControl',
+      // System
+      'Main.AutoStandby',
+      'Main.OSD.TempDisplay',
+      'Main.CEC.ARC',
+      'Main.CEC.Audio',
+      'Main.CEC.Power',
+      'Main.CEC.Switch',
+      'Main.Trigger1.Out',
+      'Main.Trigger2.Out',
       'Zone2.Power',
       'Zone2.Source',
       'Zone2.Volume',
       'Zone2.Mute',
+      'Zone2.VolumeControl',
+      'Zone2.VolumeFixed',
       // Tuner keys only answer when the tuner is the active source.
       'Tuner.Band',
       'Tuner.FM.Frequency',
@@ -243,6 +281,17 @@ export class NadClient extends EventEmitter {
   /** Step FM frequency up/down (uses the NAD +/- step on the frequency key). */
   tuneFm(dir: 'up' | 'down'): void {
     this.write(`Tuner.FM.Frequency${dir === 'up' ? '+' : '-'}`);
+  }
+
+  /**
+   * Generic setter for NON-volume settings (tone, speakers, CEC, …).
+   * Hard-refuses any "Volume" key so it can never bypass the volume guard.
+   */
+  setSetting(key: string, value: string): void {
+    if (/volume/i.test(key)) {
+      throw new Error(`setSetting refused for volume key "${key}" — use the guarded VolumeService`);
+    }
+    this.write(`${key}=${value}`);
   }
 
   /** RAW absolute volume set — call ONLY from the guarded VolumeService. */

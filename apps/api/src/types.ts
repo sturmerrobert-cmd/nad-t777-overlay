@@ -17,6 +17,10 @@ export interface NadState {
   sleepMinutes?: number;
   /** Incoming audio signal/format, as the receiver decodes it. */
   signal?: AudioSignal;
+  tone?: ToneState;
+  setup?: SetupState;
+  surround?: SurroundState;
+  system?: SystemState;
 }
 
 export interface AudioSignal {
@@ -24,6 +28,50 @@ export interface AudioSignal {
   channels?: string; // e.g. "2/0.0", "3/2.1"          (Main.Audio.Channels)
   rateKhz?: string; // sample rate in kHz               (Main.Audio.Rate)
   lock?: string; // signal lock Yes/No                  (Main.Audio.Lock)
+  delay?: string; // A/V delay (Main.Audio.Delay)
+  videoResolution?: string; // Main.Video.Resolution
+}
+
+export interface ToneState {
+  bass?: number;
+  treble?: number;
+  toneDefeat?: boolean;
+}
+
+export interface SetupState {
+  subOn?: boolean;
+  enhancedBass?: boolean;
+  levelCenter?: number;
+  levelSub?: number;
+  centerDialog?: number;
+  frontConfig?: string;
+  frontFreq?: string;
+  centerConfig?: string;
+  centerFreq?: string;
+  surroundConfig?: string;
+  surroundFreq?: string;
+}
+
+export interface SurroundState {
+  dolbyCenterSpread?: boolean;
+  dolbyCenterWidth?: string;
+  dolbyDrc?: string;
+  dolbyPanorama?: boolean;
+  dolbyDimension?: string;
+  dtsCenterGain?: string;
+  dtsDrc?: string;
+  dtsDialogControl?: string;
+}
+
+export interface SystemState {
+  autoStandby?: boolean;
+  osdTempDisplay?: boolean;
+  cecArc?: string;
+  cecAudio?: boolean;
+  cecPower?: boolean;
+  cecSwitch?: boolean;
+  trigger1Out?: string;
+  trigger2Out?: string;
 }
 
 export interface Zone2State {
@@ -34,6 +82,9 @@ export interface Zone2State {
   mute?: boolean;
   /** Raised when Zone 2 observed volume is above the cap. */
   overCapAlert: boolean;
+  /** Variable | Fixed output mode. */
+  volumeControl?: string;
+  volumeFixed?: number;
 }
 
 export interface TunerState {
@@ -90,11 +141,69 @@ export interface AppState {
   sourceNames: Record<string, string>;
   /** Which source index is the tuner (from device names), if any. */
   tunerSourceIndex?: number;
+  /** Which source index is BluOS (from device names), if any. */
+  bluosSourceIndex?: number;
+  /** When true, auto-switch source to BluOS (+power on) on playback start. */
+  autoSwitchOnPlay: boolean;
   /** Dirac REST API was absent in Phase 0 discovery; always false here. */
   diracAvailable: boolean;
   /** Last server-side warning/clamp message, surfaced to the UI. */
   lastNotice?: string;
   updatedAt: number;
+}
+
+/** One usage segment: a continuous stretch on a single source while powered on. */
+export interface UsageSegment {
+  source: number;
+  sourceName: string;
+  startedAt: number; // epoch ms
+  endedAt: number; // epoch ms (for the open segment: last poll seen)
+  durationSec: number;
+  /** Volume stats over the segment, sampled from polling. */
+  volMinDb?: number;
+  volMaxDb?: number;
+  volAvgDb?: number;
+  volLastDb?: number;
+  samples: number;
+  /** True while this segment is still the active one. */
+  open?: boolean;
+}
+
+export interface UsageLog {
+  current: UsageSegment | null;
+  segments: UsageSegment[]; // most recent first
+}
+
+/** A captured track (metadata only — no audio). */
+export interface TrackEntry {
+  title: string;
+  artist?: string;
+  album?: string;
+  service?: string;
+  firstSeen: number;
+  lastSeen: number;
+  plays: number;
+}
+
+/** One BluOS browse menu item. */
+export interface BrowseItem {
+  text: string;
+  type?: string; // link | audio | ...
+  browseKey?: string; // present → drill in
+  playURL?: string; // present → play
+  image?: string;
+}
+
+export interface BrowseResult {
+  serviceName?: string;
+  items: BrowseItem[];
+}
+
+/** One entry in the current play queue. */
+export interface QueueItem {
+  title?: string;
+  artist?: string;
+  album?: string;
 }
 
 /** Fallback source labels when the device has not reported a name yet. */
