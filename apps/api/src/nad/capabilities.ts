@@ -20,6 +20,14 @@
 
 import { expandAliases } from './aliases.js';
 
+/**
+ * Dirac is disabled by default (highest legal risk: trademark needs prior written
+ * consent; the :5006 API is unofficial). When false, the backend never probes
+ * :5006 and the `dirac` capability resolves to unsupported. Mirror of the web
+ * flag in apps/web/src/branding.ts — do not enable without written Dirac consent.
+ */
+export const DIRAC_ENABLED = false;
+
 export type CapabilityStatus = 'supported' | 'unsupported' | 'unknown';
 
 export interface CapabilitySpec {

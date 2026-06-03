@@ -190,6 +190,11 @@ ol.queue li { font-size: 14px; }
 .kv li:last-child { border-bottom: none; }
 .kv li span { color: var(--muted); }
 
+/* First-run notice (volume safety + independence) */
+.firstrun { background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--warn, #c90); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+.firstrun strong { display: block; margin-bottom: 4px; }
+.firstrun p { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+
 /* Capability gating: greyed-out unsupported feature cards */
 .gate-off { position: relative; }
 .gate-off > * { opacity: 0.35; filter: grayscale(1); pointer-events: none; }

@@ -36,7 +36,7 @@ for (const f of ['THIRD-PARTY-NOTICES.txt', 'EULA.txt', 'DISCLAIMER.txt']) {
 }
 
 console.log('\n[1/4] building web UI…');
-run('pnpm', ['--filter', '@nad/web', 'build']);
+run('pnpm', ['--filter', '@receiver-hq/web', 'build']);
 
 console.log('\n[2/4] embedding web into generated module…');
 run('node', ['tools/gen-embedded.mjs', 'apps/web/dist', 'apps/api/src/embedded-web.generated.ts']);
@@ -49,7 +49,10 @@ await esbuild.build({
   format: 'cjs',
   target: 'node20',
   outfile: root + 'build-exe/app.cjs',
-  legalComments: 'none',
+  // Preserve bundled OSS license/copyright headers (MIT/ISC/BSD require attribution
+  // in redistributions). 'eof' appends them at the end of the bundle; the human-
+  // readable summary also ships as THIRD-PARTY-NOTICES.txt next to the .exe.
+  legalComments: 'eof',
   logLevel: 'info',
   // pino's optional pretty transport is never used (logger:false) — don't fail on it.
   external: ['pino-pretty'],
@@ -59,5 +62,5 @@ console.log('  bundle -> build-exe/app.cjs');
 if (noExe) { console.log('\n--no-exe: stopping before packaging.'); process.exit(0); }
 
 console.log('\n[4/4] packaging Windows exe (@yao-pkg/pkg)…');
-run('pnpm', ['exec', 'pkg', 'build-exe/app.cjs', '-t', 'node22-win-x64', '-o', 'build-exe/nad-overlay.exe', '--public']);
-console.log('\nDone: build-exe/nad-overlay.exe');
+run('pnpm', ['exec', 'pkg', 'build-exe/app.cjs', '-t', 'node22-win-x64', '-o', 'build-exe/receiver-hq.exe', '--public']);
+console.log('\nDone: build-exe/receiver-hq.exe');
