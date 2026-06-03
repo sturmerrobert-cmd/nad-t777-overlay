@@ -5,6 +5,7 @@ import {
 } from './api';
 import type { AppState, CapabilityStatus, UsageLog, UsageSegment, TrackEntry, BrowseItem, BrowseResult, QueueItem } from './types';
 import { t, getLang, setLang, LANGS, manual, type Lang } from './i18n';
+import { PRODUCT_NAME, DIRAC_ENABLED } from './branding';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -59,8 +60,10 @@ const CAP_LABELS: { id: string; label: string }[] = [
   { id: 'zone3', label: 'Zone 3' },
   { id: 'zone4', label: 'Zone 4' },
   { id: 'tuner', label: 'Tuner' },
-  { id: 'bluos', label: 'BluOS streaming' },
-  { id: 'dirac', label: 'Dirac Live (:5006)' },
+  // id stays 'bluos' (internal backend capability id); only the label is generic.
+  { id: 'bluos', label: 'Streaming' },
+  // Dirac listed only when explicitly enabled (off by default — see branding.ts).
+  ...(DIRAC_ENABLED ? [{ id: 'dirac', label: 'Dirac' }] : []),
 ];
 
 function CapBadge({ status }: { status: CapabilityStatus }) {
@@ -101,6 +104,7 @@ export function App() {
   const [tab, setTab] = useState<TabId>('main');
   const [, setLangTick] = useState<Lang>(getLang());
   const changeLang = (l: Lang) => { setLang(l); setLangTick(l); };
+  useEffect(() => { document.title = PRODUCT_NAME; }, []);
 
   // If the active tab becomes unsupported (device swapped/discovered), fall back.
   const tabHidden = !!state && !!TAB_CAPS[tab] && allUnsupported(state, TAB_CAPS[tab]!);
@@ -109,7 +113,7 @@ export function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <h1>NAD T 777 <span className="muted">overlay</span></h1>
+        <h1>{PRODUCT_NAME}</h1>
         <div className="topbar-right">
           <ConnBadge connected={connected} state={state} />
           <div className="lang-switch">
@@ -124,6 +128,7 @@ export function App() {
         <p className="muted">{t('app.connecting')}</p>
       ) : (
         <>
+          <FirstRunNotice />
           <SafetyStrip state={state} />
           {state.lastNotice && <div className="notice">⚠ {state.lastNotice}</div>}
 
@@ -158,15 +163,44 @@ export function App() {
   );
 }
 
+/** One-time notice (volume safety + independence/trademark) shown on first launch. */
+function FirstRunNotice() {
+  const KEY = 'rhq.firstrun.ack';
+  const [ack, setAck] = useState<boolean>(() => {
+    try { return localStorage.getItem(KEY) === '1'; } catch { return false; }
+  });
+  if (ack) return null;
+  const dismiss = () => { try { localStorage.setItem(KEY, '1'); } catch { /* ignore */ } setAck(true); };
+  return (
+    <div className="firstrun">
+      <strong>{t('firstrun.title')}</strong>
+      <p>{t('firstrun.body')}</p>
+      <button className="pill warn" onClick={dismiss}>{t('firstrun.ack')}</button>
+    </div>
+  );
+}
+
+/** About: product identity + descriptive compatibility + trademark disclaimer + notices. */
+function AboutCard() {
+  return (
+    <section className="card">
+      <h2>{t('about.title')} <span className="muted">{PRODUCT_NAME}</span></h2>
+      <p>{t('about.compat')}</p>
+      <p className="muted" style={{ fontSize: 13 }}>{t('about.disclaimer')}</p>
+      <p className="muted" style={{ fontSize: 12 }}>{t('about.notices')}</p>
+    </section>
+  );
+}
+
 function ConnBadge({ connected, state }: { connected: boolean; state: AppState | null }) {
   const nad = state?.nad.reachable;
   const bluos = state?.nowPlaying.reachable;
   return (
     <div className="badges">
       <span className={`badge ${connected ? 'ok' : 'bad'}`}>{connected ? t('badge.live') : t('badge.offline')}</span>
-      <span className={`badge ${nad ? 'ok' : 'bad'}`}>NAD {nad ? 'OK' : '—'}</span>
-      <span className={`badge ${bluos ? 'ok' : 'bad'}`} title={bluos ? '' : t('badge.bluosDownHint')}>
-        BluOS {bluos ? 'OK' : t('badge.down')}
+      <span className={`badge ${nad ? 'ok' : 'bad'}`}>{t('badge.receiver')} {nad ? 'OK' : '—'}</span>
+      <span className={`badge ${bluos ? 'ok' : 'bad'}`} title={bluos ? '' : t('badge.streamDownHint')}>
+        {t('badge.streaming')} {bluos ? 'OK' : t('badge.down')}
       </span>
       {state?.nad.model && <span className="badge dim">{state.nad.model} {state.nad.version}</span>}
     </div>
@@ -483,7 +517,7 @@ function PlayingTab({ state }: { state: AppState }) {
       <BluosModuleCard reachable={!!np.reachable} />
 
       <section className="card nowplaying">
-        <h2>{t('play.nowPlaying')} <span className="muted">(BluOS)</span></h2>
+        <h2>{t('play.nowPlaying')} <span className="muted">({t('play.viaStreaming')})</span></h2>
         {!np.reachable ? (
           <p className="muted">{t('play.unreachable')}</p>
         ) : (
@@ -539,7 +573,7 @@ function PlayingTab({ state }: { state: AppState }) {
 }
 
 function LibraryTab() {
-  const [crumbs, setCrumbs] = useState<{ key?: string; label: string }[]>([{ label: 'BluOS' }]);
+  const [crumbs, setCrumbs] = useState<{ key?: string; label: string }[]>([{ label: t('lib.root') }]);
   const [res, setRes] = useState<BrowseResult>({ items: [] });
   const [loading, setLoading] = useState(false);
   const [tracks, setTracks] = useState<TrackEntry[]>([]);
@@ -1016,6 +1050,8 @@ function SystemTab({ state }: { state: AppState }) {
 
       <CapabilityPanel state={state} />
 
+      <AboutCard />
+
       <section className="card">
         <h2>{t('sys.device')}</h2>
         <ul className="kv">
@@ -1025,7 +1061,9 @@ function SystemTab({ state }: { state: AppState }) {
           <li><span>{t('sys.triggers')}</span><b>{nad.system?.trigger1Out ?? '—'} / {nad.system?.trigger2Out ?? '—'}</b></li>
           <li><span>{t('sys.videoRes')}</span><b>{nad.signal?.videoResolution || '—'}</b></li>
           <li><span>{t('sig.delay')}</span><b>{nad.signal?.delay ?? '—'}</b></li>
-          <li><span>Dirac (5006)</span><b>{state.diracAvailable ? t('cap.yes') : capOf(state, 'dirac') === 'unknown' ? '…' : t('sys.diracAbsent')}</b></li>
+          {DIRAC_ENABLED && (
+            <li><span>Dirac (5006)</span><b>{state.diracAvailable ? t('cap.yes') : capOf(state, 'dirac') === 'unknown' ? '…' : t('sys.diracAbsent')}</b></li>
+          )}
         </ul>
       </section>
 

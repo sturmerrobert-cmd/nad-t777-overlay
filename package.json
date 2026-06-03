@@ -1,13 +1,13 @@
 {
-  "name": "nad",
+  "name": "receiver-hq",
   "version": "0.0.0",
   "private": true,
-  "description": "NAD T 777 V3 control & monitoring overlay (local, standalone)",
+  "description": "Receiver HQ — lokalny panel sterowania amplitunerami (kompatybilny z NAD)",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "probe": "pnpm --filter @nad/api probe"
+    "probe": "pnpm --filter @receiver-hq/api probe"
   },
   "packageManager": "pnpm@11.1.2",
   "devDependencies": {

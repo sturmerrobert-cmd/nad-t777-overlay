@@ -10,7 +10,7 @@ import type { VolumeService } from './volume/service.js';
 import type { UsageLogger } from './usage/logger.js';
 import type { TrackLogger } from './tracks/logger.js';
 import type { AppConfig } from './config.js';
-import { computeCapabilities } from './nad/capabilities.js';
+import { computeCapabilities, DIRAC_ENABLED } from './nad/capabilities.js';
 import { getAliased } from './nad/aliases.js';
 import { probeTcpOpen } from './discover.js';
 import {
@@ -123,14 +123,18 @@ export class StateManager extends EventEmitter {
 
     this.nad.probeCapabilities();
 
-    // Out-of-band: is the Dirac control port open? (Dirac-equipped models only.)
-    void probeTcpOpen(this.cfg.DEVICE_IP, DIRAC_PORT)
-      .then((open) => {
-        this.diracOpen = open;
-        if (open) this.log('info', `Dirac control port (:${DIRAC_PORT}) detected`);
-      })
-      .catch(() => {})
-      .finally(() => this.rebuildNad());
+    // Out-of-band: is the Dirac control port open? Gated behind DIRAC_ENABLED —
+    // disabled by default (legal risk: Dirac mark + unofficial :5006 API), so we
+    // do NOT touch :5006 at all unless explicitly turned on.
+    if (DIRAC_ENABLED) {
+      void probeTcpOpen(this.cfg.DEVICE_IP, DIRAC_PORT)
+        .then((open) => {
+          this.diracOpen = open;
+          if (open) this.log('info', `Dirac control port (:${DIRAC_PORT}) detected`);
+        })
+        .catch(() => {})
+        .finally(() => this.rebuildNad());
+    }
 
     this.discoveryTimer = setTimeout(() => {
       this.capabilitiesReady = true;
@@ -195,6 +199,11 @@ export class StateManager extends EventEmitter {
     let tunerIndex: number | undefined;
     let bluosIndex: number | undefined;
     for (let i = 1; i <= 12; i++) {
+      // `dev` is the input label REPORTED BY THE DEVICE (SourceN.Name), e.g. the
+      // receiver may name an input "BluOS" or "Tuner". These are the device's own
+      // labels, NOT our branding — we only render them and match on them to find
+      // which source index is the streaming module / tuner. We never inject brand
+      // names into static strings ourselves.
       const dev = this.nad.values.get(`Source${i}.Name`);
       const name = this.nameOverrides[i] ?? dev ?? DEFAULT_SOURCE_NAMES[i] ?? `Source ${i}`;
       names[i] = name;

@@ -1,9 +1,16 @@
-# nad — NAD T 777 control & monitoring overlay
+# Receiver HQ — local control & monitoring app for A/V receivers
 
-Small, **local-only** overlay for a NAD T 777 receiver: power, guarded volume,
-source, mute, listening mode, and a BluOS now-playing card. No cloud, no
-third-party auth. pnpm monorepo: `apps/api` (Fastify 5 + WebSocket) and
-`apps/web` (React + Vite).
+Small, **local-only** control app for compatible A/V receivers (NAD V2.x control
+protocol): power, guarded volume, source, mute, listening mode, and a streaming
+now-playing card. No cloud, no third-party auth. pnpm monorepo: `apps/api`
+(Fastify 5 + WebSocket) and `apps/web` (React + Vite).
+
+> **Trademarks / non-affiliation.** Receiver HQ is an independent, unofficial
+> product. Not affiliated with, sponsored, or endorsed by NAD or Lenbrook
+> Industries. "NAD" is a trademark of Lenbrook Industries; "BluOS"/"Bluesound"
+> of Lenbrook; "Dolby"/"DTS"/"Dirac" of their respective owners — used here
+> **only descriptively** to state hardware compatibility. See `DISCLAIMER.txt`,
+> `EULA.txt`, `PRIVACY.md`, `THIRD-PARTY-NOTICES.txt`.
 
 > This is a standalone project rooted at `~/nad`. It is **not** part of any other
 > repo or monorepo.
