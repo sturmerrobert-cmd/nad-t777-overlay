@@ -11,7 +11,7 @@
  */
 import esbuild from 'esbuild';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, copyFileSync, existsSync } from 'node:fs';
 
 const root = new URL('..', import.meta.url).pathname;
 const noExe = process.argv.includes('--no-exe');
@@ -21,6 +21,19 @@ const run = (cmd, args) => {
 };
 
 mkdirSync(root + 'build-exe', { recursive: true });
+
+// Distribution legal docs must ship NEXT TO the .exe (the .exe is a single file).
+// THIRD-PARTY-NOTICES is required by the bundled OSS licenses (MIT/ISC/BSD); the
+// EULA + disclaimer are part of the product. Copy them into build-exe/.
+console.log('\n[0/4] copying legal docs next to the build…');
+for (const f of ['THIRD-PARTY-NOTICES.txt', 'EULA.txt', 'DISCLAIMER.txt']) {
+  if (existsSync(root + f)) {
+    copyFileSync(root + f, root + 'build-exe/' + f);
+    console.log('  ' + f);
+  } else {
+    console.warn(`  WARNING: ${f} missing — distribution will lack required notices`);
+  }
+}
 
 console.log('\n[1/4] building web UI…');
 run('pnpm', ['--filter', '@nad/web', 'build']);
