@@ -1,0 +1,140 @@
+================================================================
+ UMOWA LICENCYJNA UŻYTKOWNIKA KOŃCOWEGO (EULA)
+ [NAZWA PRODUKTU] — wersja [X.Y]
+================================================================
+ ⚠️ SZABLON — NIE jest poradą prawną. Uzupełnij pola [ ] i zleć
+    weryfikację prawnikowi (PL/UE) przed sprzedażą. Pola do uzupełnienia:
+    [NAZWA PRODUKTU], [NAZWA FIRMY/SPRZEDAWCY], [FORMA PRAWNA, NIP/KRS],
+    [ADRES], [E-MAIL KONTAKTOWY], [MIASTO SĄDU], [ROK].
+
+ Niniejsza Umowa zostaje zawarta między Tobą („Użytkownik”) a
+ [NAZWA FIRMY/SPRZEDAWCY], [FORMA PRAWNA, NIP/KRS], [ADRES]
+ („Licencjodawca”). Instalacja lub używanie [NAZWA PRODUKTU]
+ („Oprogramowanie”) oznacza akceptację warunków. Jeśli ich nie
+ akceptujesz — nie instaluj i nie używaj Oprogramowania.
+
+----------------------------------------------------------------
+ 1. PRZEDMIOT
+----------------------------------------------------------------
+ Oprogramowanie to lokalna aplikacja-nakładka do STEROWANIA i
+ MONITOROWANIA kompatybilnych amplitunerów/procesorów audio przez
+ protokół sterujący producenta (RS-232 / sieć) oraz, jeśli dostępny,
+ moduł strumieniowy urządzenia. Oprogramowanie jest produktem
+ NIEZALEŻNYM (patrz pkt 6 — Znaki towarowe).
+
+----------------------------------------------------------------
+ 2. UDZIELENIE LICENCJI
+----------------------------------------------------------------
+ Licencjodawca udziela Użytkownikowi niewyłącznej, nieprzenoszalnej,
+ odwołalnej licencji na korzystanie z Oprogramowania zgodnie z zakupioną
+ opcją (np. na [liczba] urządzeń/gospodarstwo domowe), wyłącznie do użytku
+ zgodnego z przeznaczeniem. Licencja nie przenosi własności Oprogramowania.
+
+----------------------------------------------------------------
+ 3. OGRANICZENIA
+----------------------------------------------------------------
+ Użytkownik nie może: (a) odsprzedawać, wynajmować, sublicencjonować ani
+ udostępniać Oprogramowania osobom trzecim poza zakresem licencji;
+ (b) usuwać oznaczeń praw autorskich; (c) dekompilować/odtwarzać kodu
+ źródłowego — Z WYJĄTKIEM zakresu bezwzględnie dozwolonego prawem
+ (w tym art. 75 ust. 2-3 ustawy o prawie autorskim oraz interoperacyjność
+ wg dyrektywy 2009/24/WE). Postanowienia te nie ograniczają praw
+ niewyłączalnych przez prawo.
+
+----------------------------------------------------------------
+ 4. WŁASNOŚĆ
+----------------------------------------------------------------
+ Oprogramowanie i wszelkie prawa własności intelektualnej do kodu
+ autorskiego Licencjodawcy pozostają przy Licencjodawcy. Licencja
+ nie obejmuje praw do marek, protokołów ani technologii osób trzecich
+ (pkt 6).
+
+----------------------------------------------------------------
+ 5. KOMPONENTY OPEN-SOURCE
+----------------------------------------------------------------
+ Oprogramowanie zawiera komponenty open-source na licencjach
+ permisywnych (MIT/ISC/BSD-3-Clause) oraz osadzony runtime Node.js.
+ Wykaz i pełne teksty licencji: plik „THIRD-PARTY-NOTICES.txt”
+ dołączony do Oprogramowania. W zakresie tych komponentów obowiązują
+ ich licencje.
+
+----------------------------------------------------------------
+ 6. ZNAKI TOWAROWE I BRAK POWIĄZANIA
+----------------------------------------------------------------
+ „NAD” jest znakiem towarowym Lenbrook Industries; „BluOS” i „Bluesound”
+ — Lenbrook; „Dolby”, „Dolby Atmos” — Dolby Laboratories; „DTS”,
+ „DTS:X” — DTS/Xperi; „Dirac”, „Dirac Live” — Dirac Research. Pozostałe
+ nazwy należą do właścicieli. Licencjodawca NIE jest powiązany z tymi
+ podmiotami, ani przez nie sponsorowany/certyfikowany/wspierany. Nazwy
+ te są użyte WYŁĄCZNIE opisowo, w celu wskazania kompatybilności
+ (uczciwe użycie opisowe). Oprogramowanie nie zawiera technologii
+ dekodowania Dolby/DTS — jedynie steruje funkcjami obecnymi w urządzeniu.
+
+----------------------------------------------------------------
+ 7. BRAK GWARANCJI
+----------------------------------------------------------------
+ OPROGRAMOWANIE DOSTARCZANE JEST „TAKIE, JAKIE JEST” (AS IS), BEZ
+ GWARANCJI JAKIEGOKOLWIEK RODZAJU, w najszerszym zakresie dozwolonym
+ prawem. Licencjodawca nie gwarantuje nieprzerwanego ani bezbłędnego
+ działania, ani kompatybilności z każdym modelem/firmware urządzenia.
+
+----------------------------------------------------------------
+ 8. BEZPIECZEŃSTWO SPRZĘTU I GŁOŚNOŚCI (WAŻNE)
+----------------------------------------------------------------
+ Oprogramowanie steruje wzmacniaczem/amplitunerem. Mimo wbudowanego
+ twardego LIMITU GŁOŚNOŚCI i mechanizmów zabezpieczających, Użytkownik
+ korzysta z niego NA WŁASNE RYZYKO w zakresie ochrony słuchu, głośników
+ i sprzętu. Licencjodawca nie odpowiada za szkody wynikłe z nieprawidłowej
+ konfiguracji limitów, awarii sieci/urządzenia ani działania osób trzecich.
+
+----------------------------------------------------------------
+ 9. OGRANICZENIE ODPOWIEDZIALNOŚCI
+----------------------------------------------------------------
+ W najszerszym zakresie dozwolonym prawem Licencjodawca nie odpowiada za
+ szkody pośrednie, następcze, utratę danych ani korzyści. Łączna
+ odpowiedzialność Licencjodawcy nie przekracza ceny zapłaconej za
+ Oprogramowanie. NINIEJSZE OGRANICZENIA NIE WYŁĄCZAJĄ ani nie ograniczają
+ odpowiedzialności, której nie można wyłączyć prawem (np. za szkodę
+ wyrządzoną umyślnie, za życie/zdrowie), ani USTAWOWYCH PRAW KONSUMENTA.
+
+----------------------------------------------------------------
+ 10. KONSUMENCI (PL/UE)
+----------------------------------------------------------------
+ Jeśli Użytkownik jest konsumentem, zachowuje wszystkie prawa wynikające
+ z bezwzględnie obowiązujących przepisów, w tym rękojmię/zgodność towaru
+ (treści cyfrowej) z umową oraz — z zastrzeżeniem wyjątków dla treści
+ cyfrowych — prawo odstąpienia w terminie 14 dni. Postanowienia EULA
+ mniej korzystne dla konsumenta niż przepisy bezwzględne nie wiążą go.
+
+----------------------------------------------------------------
+ 11. DANE I PRYWATNOŚĆ
+----------------------------------------------------------------
+ Oprogramowanie działa LOKALNIE w sieci Użytkownika. Logi użycia oraz
+ lista odtwarzanych utworów (metadane) zapisywane są LOKALNIE na
+ urządzeniu Użytkownika i nie są przesyłane do Licencjodawcy. Szczegóły:
+ [Polityka Prywatności / odnośnik].
+
+----------------------------------------------------------------
+ 12. CZAS TRWANIA I WYPOWIEDZENIE
+----------------------------------------------------------------
+ Licencja obowiązuje do jej wypowiedzenia. Wygasa automatycznie w razie
+ istotnego naruszenia warunków. Po wygaśnięciu Użytkownik zaprzestaje
+ używania i usuwa kopie Oprogramowania.
+
+----------------------------------------------------------------
+ 13. PRAWO WŁAŚCIWE I SPORY
+----------------------------------------------------------------
+ Umowa podlega prawu polskiemu. Spory rozstrzyga sąd właściwy dla
+ [MIASTO SĄDU], z zastrzeżeniem bezwzględnie właściwych przepisów o
+ jurysdykcji konsumenckiej. Jeśli którekolwiek postanowienie okaże się
+ nieważne, pozostałe zachowują moc.
+
+----------------------------------------------------------------
+ 14. POSTANOWIENIA KOŃCOWE
+----------------------------------------------------------------
+ Umowa stanowi całość ustaleń co do licencji na Oprogramowanie.
+ Kontakt: [E-MAIL KONTAKTOWY].
+
+ © [ROK] [NAZWA FIRMY/SPRZEDAWCY]. Wszelkie prawa zastrzeżone.
+ (Szablon informacyjny — wymaga weryfikacji prawnej przed użyciem.)
+================================================================
