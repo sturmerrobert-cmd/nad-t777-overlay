@@ -2,9 +2,9 @@
  * Standalone entry for the single-file Windows .exe.
  *
  * - No .env required: ships with the user's confirmed safety defaults; an
- *   optional `nad-config.json` next to the exe overrides any of them.
+ *   optional `receiver-hq-config.json` next to the exe overrides any of them.
  * - Auto-discovers the NAD on the LAN if DEVICE_IP is not configured, and caches
- *   the result back to nad-config.json.
+ *   the result back to receiver-hq-config.json.
  * - Serves the built web UI (embedded) + the API from one port, then opens the
  *   browser. NAD/BluOS control behaves exactly as in dev.
  */
@@ -28,7 +28,7 @@ import { WEB } from './embedded-web.generated.js';
 const appDir = process.execPath.toLowerCase().endsWith('node')
   ? process.cwd()
   : dirname(process.execPath);
-const configPath = join(appDir, 'nad-config.json');
+const configPath = join(appDir, 'receiver-hq-config.json');
 
 interface FileConfig {
   DEVICE_IP?: string;
@@ -76,7 +76,7 @@ function openBrowser(url: string): void {
 }
 
 async function main(): Promise<void> {
-  console.log('NAD T 777 overlay — standalone\n');
+  console.log('Receiver HQ — standalone\n');
   const fileCfg = { ...DEFAULTS, ...readFileConfig() };
 
   // Resolve device IP: configured, else auto-discover on the LAN.
@@ -88,7 +88,7 @@ async function main(): Promise<void> {
       deviceIp = found.ip;
       fileCfg.DEVICE_IP = deviceIp;
       saveFileConfig(fileCfg);
-      console.log(`  found ${found.model ?? 'NAD'} at ${deviceIp} (saved to nad-config.json)\n`);
+      console.log(`  found ${found.model ?? 'NAD'} at ${deviceIp} (saved to receiver-hq-config.json)\n`);
     } else {
       console.error(
         '\nCould not find the NAD on the local network automatically.\n' +

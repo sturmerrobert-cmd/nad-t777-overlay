@@ -46,7 +46,7 @@ async function main(): Promise<void> {
   const app = await buildServer({ cfg, nad, bluos, volume, usage, tracks, state });
   await app.listen({ host: '0.0.0.0', port: cfg.HTTP_PORT });
 
-  console.log(`\nNAD overlay API listening on http://0.0.0.0:${cfg.HTTP_PORT}`);
+  console.log(`\nReceiver HQ API listening on http://0.0.0.0:${cfg.HTTP_PORT}`);
   console.log(`  device:        ${cfg.DEVICE_IP}  (NAD:${cfg.NAD_PORT}, BluOS:${cfg.BLUOS_PORT})`);
   console.log(`  MAX_VOLUME_DB: ${cfg.maxVolumeDb} dB  (hard cap)`);
   console.log(`  ZONE2 cap:     ${cfg.zone2MaxVolumeDb} dB${cfg.ZONE2_MAX_VOLUME_DB === undefined ? ' (fallback to Main)' : ''}`);
