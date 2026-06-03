@@ -1,0 +1,57 @@
+================================================================
+ DISCLAIMER / ZASTRZEŻENIA
+ [NAZWA PRODUKTU]
+================================================================
+ (Krótka wersja do umieszczenia w aplikacji, README oraz na karcie
+ produktu w sklepie. Szablon — nie jest poradą prawną.)
+
+----------------------------------------------------------------
+ ZNAKI TOWAROWE I BRAK POWIĄZANIA
+----------------------------------------------------------------
+ [NAZWA PRODUKTU] to NIEZALEŻNY, NIEOFICJALNY produkt. Nie jest
+ powiązany z, sponsorowany, autoryzowany ani wspierany przez Lenbrook
+ Industries (NAD, BluOS, Bluesound), Dolby Laboratories, DTS/Xperi
+ ani Dirac Research.
+
+ „NAD” jest znakiem towarowym Lenbrook Industries. „BluOS” i „Bluesound”
+ — Lenbrook. „Dolby”, „Dolby Atmos” — Dolby Laboratories. „DTS”, „DTS:X”
+ — DTS, Inc./Xperi. „Dirac”, „Dirac Live” — Dirac Research. Wszystkie
+ nazwy i znaki należą do ich właścicieli i użyte są WYŁĄCZNIE w celu
+ opisowym — dla wskazania, z jakim sprzętem produkt jest kompatybilny.
+
+ [NAZWA PRODUKTU] współpracuje z urządzeniami za pośrednictwem
+ publicznie udokumentowanego protokołu sterującego producenta oraz
+ lokalnych interfejsów sieciowych urządzenia.
+
+----------------------------------------------------------------
+ BEZPIECZEŃSTWO (SPRZĘT / SŁUCH / GŁOŚNOŚĆ)
+----------------------------------------------------------------
+ Produkt steruje wzmacniaczem/amplitunerem. Mimo wbudowanego twardego
+ limitu głośności i zabezpieczeń, używasz go NA WŁASNE RYZYKO w zakresie
+ ochrony słuchu, głośników i sprzętu. Skonfiguruj limity ostrożnie.
+ Producent oprogramowania nie odpowiada za szkody wynikłe z użycia.
+
+----------------------------------------------------------------
+ BRAK GWARANCJI
+----------------------------------------------------------------
+ Oprogramowanie dostarczane jest „TAKIE, JAKIE JEST” (AS IS), bez
+ gwarancji jakiegokolwiek rodzaju w zakresie dozwolonym prawem.
+ Kompatybilność zależy od modelu i wersji firmware urządzenia i nie
+ jest gwarantowana dla każdego egzemplarza. Niniejsze zastrzeżenia nie
+ ograniczają ustawowych praw konsumenta (PL/UE).
+
+----------------------------------------------------------------
+ OPEN-SOURCE
+----------------------------------------------------------------
+ Zawiera komponenty open-source na licencjach permisywnych — patrz
+ „THIRD-PARTY-NOTICES.txt”.
+
+ © [ROK] [NAZWA FIRMY/SPRZEDAWCY].
+================================================================
+
+----------------------------------------------------------------
+ WERSJA 1-ZDANIOWA (np. do stopki / opisu w sklepie)
+----------------------------------------------------------------
+ Produkt niezależny i nieoficjalny; niepowiązany z NAD/Lenbrook,
+ Dolby, DTS ani Dirac. Nazwy marek użyte wyłącznie opisowo dla
+ wskazania kompatybilności. Używasz na własne ryzyko; bez gwarancji.
