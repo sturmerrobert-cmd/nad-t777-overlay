@@ -1,15 +1,15 @@
 ================================================================
  UMOWA LICENCYJNA UŻYTKOWNIKA KOŃCOWEGO (EULA)
- [NAZWA PRODUKTU] — wersja [X.Y]
+ Receiver HQ — wersja [X.Y]
 ================================================================
  ⚠️ SZABLON — NIE jest poradą prawną. Uzupełnij pola [ ] i zleć
     weryfikację prawnikowi (PL/UE) przed sprzedażą. Pola do uzupełnienia:
-    [NAZWA PRODUKTU], [NAZWA FIRMY/SPRZEDAWCY], [FORMA PRAWNA, NIP/KRS],
+    Receiver HQ, [NAZWA FIRMY/SPRZEDAWCY], [FORMA PRAWNA, NIP/KRS],
     [ADRES], [E-MAIL KONTAKTOWY], [MIASTO SĄDU], [ROK].
 
  Niniejsza Umowa zostaje zawarta między Tobą („Użytkownik”) a
  [NAZWA FIRMY/SPRZEDAWCY], [FORMA PRAWNA, NIP/KRS], [ADRES]
- („Licencjodawca”). Instalacja lub używanie [NAZWA PRODUKTU]
+ („Licencjodawca”). Instalacja lub używanie Receiver HQ
  („Oprogramowanie”) oznacza akceptację warunków. Jeśli ich nie
  akceptujesz — nie instaluj i nie używaj Oprogramowania.
 
@@ -137,4 +137,38 @@
 
  © [ROK] [NAZWA FIRMY/SPRZEDAWCY]. Wszelkie prawa zastrzeżone.
  (Szablon informacyjny — wymaga weryfikacji prawnej przed użyciem.)
+================================================================
+
+================================================================
+ EULA — ENGLISH REFERENCE VERSION (condensed; PL above is authoritative)
+================================================================
+ Template — not legal advice. Fill [ ] fields and have a lawyer review.
+
+1. SUBJECT. Receiver HQ ("Software") is a local app to CONTROL and MONITOR
+   compatible audio receivers over the manufacturer's control protocol
+   (RS-232 / network) and, if present, the device's streaming module.
+   Independent product (see Trademarks).
+2. LICENCE. [COMPANY] grants you a non-exclusive, non-transferable, revocable
+   licence to use the Software per your purchased option. No ownership transfer.
+3. RESTRICTIONS. No resale/sublicensing beyond the licence; no removing notices;
+   no reverse engineering EXCEPT where mandatorily allowed (incl. interoperability,
+   EU Directive 2009/24/EC).
+4. OSS. Includes permissive OSS (MIT/ISC/BSD) + Node.js — see THIRD-PARTY-NOTICES.txt.
+5. TRADEMARKS / NON-AFFILIATION. "NAD" (Lenbrook), "BluOS"/"Bluesound" (Lenbrook),
+   "Dolby" (Dolby Labs), "DTS" (DTS/Xperi), "Dirac" (Dirac Research) are used only
+   descriptively. [COMPANY] is not affiliated with or endorsed by them. The Software
+   does not include Dolby/DTS decoding.
+6. NO WARRANTY. Provided "AS IS" to the extent permitted by law.
+7. VOLUME/HARDWARE SAFETY. The Software controls an amplifier. Despite a hard
+   volume cap and safeguards, you use it AT YOUR OWN RISK (hearing/equipment).
+8. LIABILITY. Indirect/consequential damages excluded; total liability capped at
+   the price paid. Nothing excludes liability that cannot be excluded by law, nor
+   mandatory CONSUMER RIGHTS.
+9. CONSUMERS (EU). Statutory rights (conformity/“rękojmia”, 14-day withdrawal for
+   digital content subject to its exceptions) are preserved.
+10. PRIVACY. Runs locally; usage log + track list stay on your device, not sent to us.
+11. TERM. Until terminated; ends on material breach; then stop use and delete copies.
+12. LAW. Polish law; courts of [CITY], subject to mandatory consumer-jurisdiction rules.
+
+ © [ROK] [NAZWA FIRMY/SPRZEDAWCY]. Template — review by counsel before sale.
 ================================================================
