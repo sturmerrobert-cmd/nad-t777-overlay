@@ -44,9 +44,10 @@ async function main(): Promise<void> {
   state.start();
 
   const app = await buildServer({ cfg, nad, bluos, volume, usage, tracks, state });
-  await app.listen({ host: '0.0.0.0', port: cfg.HTTP_PORT });
+  await app.listen({ host: cfg.bindHost, port: cfg.HTTP_PORT });
 
-  console.log(`\nReceiver HQ API listening on http://0.0.0.0:${cfg.HTTP_PORT}`);
+  console.log(`\nReceiver HQ API listening on http://${cfg.bindHost}:${cfg.HTTP_PORT}`);
+  console.log(`  network:       ${cfg.ALLOW_LAN ? 'LAN-exposed (ALLOW_LAN=1) — consider a token' : 'loopback only (127.0.0.1)'}`);
   console.log(`  device:        ${cfg.DEVICE_IP}  (NAD:${cfg.NAD_PORT}, BluOS:${cfg.BLUOS_PORT})`);
   console.log(`  MAX_VOLUME_DB: ${cfg.maxVolumeDb} dB  (hard cap)`);
   console.log(`  ZONE2 cap:     ${cfg.zone2MaxVolumeDb} dB${cfg.ZONE2_MAX_VOLUME_DB === undefined ? ' (fallback to Main)' : ''}`);

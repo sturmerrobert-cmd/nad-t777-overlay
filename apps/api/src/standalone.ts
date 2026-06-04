@@ -40,6 +40,8 @@ interface FileConfig {
   ZONE2_WARN_VOLUME_DB?: number;
   HTTP_PORT?: number;
   AUTOSWITCH_ON_PLAY?: boolean;
+  /** Serve the UI/API to the LAN too (default false = loopback only). */
+  ALLOW_LAN?: boolean;
 }
 
 const DEFAULTS: FileConfig = {
@@ -112,6 +114,7 @@ async function main(): Promise<void> {
     ZONE2_WARN_VOLUME_DB: String(fileCfg.ZONE2_WARN_VOLUME_DB),
     HTTP_PORT: String(fileCfg.HTTP_PORT),
     AUTOSWITCH_ON_PLAY: String(fileCfg.AUTOSWITCH_ON_PLAY),
+    ALLOW_LAN: String(fileCfg.ALLOW_LAN ?? false),
     USAGE_LOG_FILE: join(dataDir, 'usage-log.jsonl'),
     TRACKS_LOG_FILE: join(dataDir, 'tracks.jsonl'),
   };
@@ -149,8 +152,10 @@ async function main(): Promise<void> {
   });
 
   const url = `http://localhost:${cfg.HTTP_PORT}`;
-  await app.listen({ host: '0.0.0.0', port: cfg.HTTP_PORT });
+  // Loopback by default (the app controls an amplifier); ALLOW_LAN opts into 0.0.0.0.
+  await app.listen({ host: cfg.bindHost, port: cfg.HTTP_PORT });
   console.log(`\nReady. Open ${url}`);
+  console.log(`Network: ${cfg.ALLOW_LAN ? 'LAN-exposed (ALLOW_LAN) — consider ACCESS_TOKEN' : 'loopback only (127.0.0.1)'}`);
   console.log(`Device: ${cfg.DEVICE_IP}  ·  Volume cap: ${cfg.maxVolumeDb} dB (Zone 2 ${cfg.zone2MaxVolumeDb} dB)`);
   console.log('Config file: ' + configPath);
   console.log('\n(Leave this window open. Close it to stop the overlay.)\n');
