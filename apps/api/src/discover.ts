@@ -51,7 +51,7 @@ function probeNad(ip: string, timeoutMs: number): Promise<string | null> {
     sock.on('data', (d: string) => {
       buf += d;
       const m = buf.match(/Main\.Model=(\S+)/);
-      if (m) finish(m[1]);
+      if (m?.[1]) finish(m[1]);
     });
   });
 }
