@@ -17,6 +17,7 @@ import type { TrackLogger } from './tracks/logger.js';
 import type { StateManager } from './state.js';
 import type { AppConfig } from './config.js';
 import { SETTINGS, applySetting, stepSetting } from './settings.js';
+import { isHostAllowed, isOriginAllowed } from './security.js';
 
 interface Deps {
   cfg: AppConfig;
@@ -29,10 +30,25 @@ interface Deps {
 }
 
 export async function buildServer(deps: Deps, opts?: { logger?: boolean }) {
-  const { nad, bluos, volume, usage, tracks, state } = deps;
+  const { cfg, nad, bluos, volume, usage, tracks, state } = deps;
   const app = Fastify({ logger: opts?.logger === false ? false : { level: 'info' } });
 
-  await app.register(cors, { origin: true });
+  // --- Network hardening (the API controls an amplifier) ---
+  // Reject any request whose Host header is not loopback (or a private-LAN host
+  // when ALLOW_LAN). This blocks LAN access by default AND defeats DNS-rebinding
+  // from arbitrary websites. Paired with binding 127.0.0.1 (see index/standalone).
+  const allowLan = cfg.ALLOW_LAN;
+  app.addHook('onRequest', async (req, reply) => {
+    if (!isHostAllowed(req.headers.host, allowLan)) {
+      return reply
+        .code(403)
+        .send({ ok: false, error: 'forbidden host — loopback only (set ALLOW_LAN=1 to serve the LAN)' });
+    }
+  });
+
+  // CORS restricted to allowed origins only (the bundled UI is same-origin and
+  // sends no Origin; this just refuses cross-site browser calls).
+  await app.register(cors, { origin: (origin, cb) => cb(null, isOriginAllowed(origin ?? undefined, allowLan)) });
   await app.register(websocket);
 
   /** Wrap a synchronous NAD command in a uniform 503-on-failure handler. */
