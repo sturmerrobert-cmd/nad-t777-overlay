@@ -15,6 +15,11 @@ now-playing card. No cloud, no third-party auth. pnpm monorepo: `apps/api`
 > This is a standalone project rooted at `~/nad`. It is **not** part of any other
 > repo or monorepo.
 
+> **Security model.** The API controls an amplifier, so by default it binds
+> **loopback only** (`127.0.0.1`) and serves a **Host-header allowlist** that blocks
+> LAN access and DNS-rebinding from any website. To reach the UI from another device
+> on your LAN, set `ALLOW_LAN=1` (an explicit opt-in; a token is recommended then).
+
 ## Phase 0 discovery result (device `192.168.1.2`)
 
 | Interface | Live | Notes |
