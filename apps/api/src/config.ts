@@ -73,6 +73,13 @@ const schema = z.object({
     z.string(),
   ),
 
+  // Network exposure. Default is LOOPBACK-ONLY (127.0.0.1): the app controls an
+  // amplifier and must not be reachable from the LAN / other sites by default.
+  // Set ALLOW_LAN=1 to also serve the UI/API to the local network (e.g. control
+  // from a phone) — an explicit, security-relevant opt-in. When enabled, a
+  // private-range Host header is also accepted; consider setting ACCESS_TOKEN.
+  ALLOW_LAN: boolDefault(false),
+
   NAD_PORT: numDefault(23),
   BLUOS_PORT: numDefault(11000),
   HTTP_PORT: numDefault(8787),
@@ -88,6 +95,8 @@ export type AppConfig = z.infer<typeof schema> & {
   zone2MaxVolumeDb: number;
   zone2MaxStepDb: number;
   zone2WarnVolumeDb?: number;
+  /** Interface to bind: loopback by default, 0.0.0.0 only when ALLOW_LAN. */
+  bindHost: string;
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -132,5 +141,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     zone2MaxVolumeDb,
     zone2MaxStepDb: cfg.MAX_STEP_DB, // shared with Main (per user choice)
     zone2WarnVolumeDb,
+    bindHost: cfg.ALLOW_LAN ? '0.0.0.0' : '127.0.0.1',
   };
 }
