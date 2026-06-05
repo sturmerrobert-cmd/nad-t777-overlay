@@ -1041,7 +1041,8 @@ function SystemTab({ state }: { state: AppState }) {
       <Gate state={state} cap="cec">
       <section className="card">
         <h2>{t('sys.cec')}</h2>
-        <EnumSetting label="ARC" k="Main.CEC.ARC" value={nad.system?.cecArc} options={['Auto', 'On', 'Off']} />
+        {/* ARC is auto-negotiated on V3: 'On' doesn't persist — offer only Auto/Off. */}
+        <EnumSetting label="ARC" k="Main.CEC.ARC" value={nad.system?.cecArc} options={['Auto', 'Off']} />
         <ToggleSetting label={t('sys.cecAudio')} k="Main.CEC.Audio" on={nad.system?.cecAudio} />
         <ToggleSetting label={t('sys.cecSwitch')} k="Main.CEC.Switch" on={nad.system?.cecSwitch} />
         <ToggleSetting label={t('sys.cecPower')} k="Main.CEC.Power" on={nad.system?.cecPower} />

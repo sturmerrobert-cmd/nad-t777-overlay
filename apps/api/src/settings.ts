@@ -39,7 +39,10 @@ export const SETTINGS: Record<string, SettingSpec> = {
   'Main.CEC.Audio': { kind: 'toggle' },
   'Main.CEC.Switch': { kind: 'toggle' },
   'Main.CEC.Power': { kind: 'toggle' },
-  'Main.CEC.ARC': { kind: 'enum', options: ['Auto', 'On', 'Off'] },
+  // On T 777 V3, ARC is auto-negotiated: `Main.CEC.ARC=On` does NOT persist
+  // (reverts to Off), so only Auto (engage when the TV requests it) and Off are
+  // meaningful. Exposing "On" would be a confusing no-op.
+  'Main.CEC.ARC': { kind: 'enum', options: ['Auto', 'Off'] },
   // Zone 2 output mode (volume itself stays guarded via VolumeService)
   'Zone2.VolumeControl': { kind: 'enum', options: ['Variable', 'Fixed'] },
 };
