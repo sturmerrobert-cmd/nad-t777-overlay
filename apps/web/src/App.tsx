@@ -948,9 +948,39 @@ function AudioTab({ state }: { state: AppState }) {
         <h2>{t('audio.bassMgmt')}</h2>
         <ToggleSetting label={t('audio.subwoofer')} k="Main.Speaker.Sub" on={s.subOn} />
         <ToggleSetting label={t('audio.enhancedBass')} k="Main.EnhancedBass" on={s.enhancedBass} />
-        <IntSetting label={t('audio.centerLevel')} k="Main.Level.Center" value={s.levelCenter} unit="dB" min={-12} max={12} />
-        <IntSetting label={t('audio.subLevel')} k="Main.Level.Sub" value={s.levelSub} unit="dB" min={-12} max={12} />
         <IntSetting label={t('audio.centerDialog')} k="Main.CenterDialog" value={s.centerDialog} min={0} max={6} />
+      </section>
+      </Gate>
+
+      <Gate state={state} cap="bassMgmt">
+      <section className="card">
+        <h2>{t('audio.speakerLevels')}</h2>
+        {/* Per-speaker calibration, -12..+12 dB. Each row shows only if the
+            connected layout has that channel (the device answered its key). */}
+        {s.levelFrontLeft !== undefined && (
+          <IntSetting label={t('audio.levelFrontLeft')} k="Main.Level.Left" value={s.levelFrontLeft} unit="dB" min={-12} max={12} />
+        )}
+        {s.levelFrontRight !== undefined && (
+          <IntSetting label={t('audio.levelFrontRight')} k="Main.Level.Right" value={s.levelFrontRight} unit="dB" min={-12} max={12} />
+        )}
+        {s.levelCenter !== undefined && (
+          <IntSetting label={t('audio.centerLevel')} k="Main.Level.Center" value={s.levelCenter} unit="dB" min={-12} max={12} />
+        )}
+        {s.levelSurroundLeft !== undefined && (
+          <IntSetting label={t('audio.levelSurroundLeft')} k="Main.Level.SurroundLeft" value={s.levelSurroundLeft} unit="dB" min={-12} max={12} />
+        )}
+        {s.levelSurroundRight !== undefined && (
+          <IntSetting label={t('audio.levelSurroundRight')} k="Main.Level.SurroundRight" value={s.levelSurroundRight} unit="dB" min={-12} max={12} />
+        )}
+        {s.levelBackLeft !== undefined && (
+          <IntSetting label={t('audio.levelBackLeft')} k="Main.Level.BackLeft" value={s.levelBackLeft} unit="dB" min={-12} max={12} />
+        )}
+        {s.levelBackRight !== undefined && (
+          <IntSetting label={t('audio.levelBackRight')} k="Main.Level.BackRight" value={s.levelBackRight} unit="dB" min={-12} max={12} />
+        )}
+        {s.levelSub !== undefined && (
+          <IntSetting label={t('audio.subLevel')} k="Main.Level.Sub" value={s.levelSub} unit="dB" min={-12} max={12} />
+        )}
       </section>
       </Gate>
 

@@ -41,7 +41,14 @@ export interface ToneState {
 export interface SetupState {
   subOn?: boolean;
   enhancedBass?: boolean;
+  /** Per-speaker calibration levels in dB (-12..+12). Absent channels stay undefined. */
+  levelFrontLeft?: number;
+  levelFrontRight?: number;
   levelCenter?: number;
+  levelSurroundLeft?: number;
+  levelSurroundRight?: number;
+  levelBackLeft?: number;
+  levelBackRight?: number;
   levelSub?: number;
   centerDialog?: number;
   frontConfig?: string;

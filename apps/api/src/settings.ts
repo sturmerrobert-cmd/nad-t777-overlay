@@ -20,12 +20,24 @@ export const SETTINGS: Record<string, SettingSpec> = {
   'Main.Bass': { kind: 'int', min: -10, max: 10, step: 1, unit: 'dB' },
   'Main.Treble': { kind: 'int', min: -10, max: 10, step: 1, unit: 'dB' },
   'Main.ToneDefeat': { kind: 'toggle' },
-  // Bass management / levels
+  // Bass management
   'Main.Speaker.Sub': { kind: 'toggle' },
   'Main.EnhancedBass': { kind: 'toggle' },
-  'Main.Level.Center': { kind: 'int', min: -12, max: 12, step: 1, unit: 'dB' },
-  'Main.Level.Sub': { kind: 'int', min: -12, max: 12, step: 1, unit: 'dB' },
   'Main.CenterDialog': { kind: 'int', min: 0, max: 6, step: 1 },
+  // Per-speaker calibration levels (each channel, Range -12..+12 dB). These are
+  // independent channel trims, NOT master volume, so the volume guard does not
+  // apply — but they still pass the "/volume/i" backstop since no key says
+  // "Volume". Front L/R is the reference channel and IS adjustable here on the
+  // T 777 (unlike the simple trim controls). Channels absent on the connected
+  // speaker layout (e.g. Back L/R) simply stay silent and are hidden in the UI.
+  'Main.Level.Left': { kind: 'int', min: -12, max: 12, step: 1, unit: 'dB' },
+  'Main.Level.Right': { kind: 'int', min: -12, max: 12, step: 1, unit: 'dB' },
+  'Main.Level.Center': { kind: 'int', min: -12, max: 12, step: 1, unit: 'dB' },
+  'Main.Level.SurroundLeft': { kind: 'int', min: -12, max: 12, step: 1, unit: 'dB' },
+  'Main.Level.SurroundRight': { kind: 'int', min: -12, max: 12, step: 1, unit: 'dB' },
+  'Main.Level.BackLeft': { kind: 'int', min: -12, max: 12, step: 1, unit: 'dB' },
+  'Main.Level.BackRight': { kind: 'int', min: -12, max: 12, step: 1, unit: 'dB' },
+  'Main.Level.Sub': { kind: 'int', min: -12, max: 12, step: 1, unit: 'dB' },
   // Speaker size
   'Main.Speaker.Front.Config': { kind: 'enum', options: ['Large', 'Small'] },
   'Main.Speaker.Center.Config': { kind: 'enum', options: ['Large', 'Small'] },

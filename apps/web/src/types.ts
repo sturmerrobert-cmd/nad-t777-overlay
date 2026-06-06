@@ -36,7 +36,13 @@ export interface ToneState {
 export interface SetupState {
   subOn?: boolean;
   enhancedBass?: boolean;
+  levelFrontLeft?: number;
+  levelFrontRight?: number;
   levelCenter?: number;
+  levelSurroundLeft?: number;
+  levelSurroundRight?: number;
+  levelBackLeft?: number;
+  levelBackRight?: number;
   levelSub?: number;
   centerDialog?: number;
   frontConfig?: string;
