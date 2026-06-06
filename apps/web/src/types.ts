@@ -16,6 +16,13 @@ export interface NadState {
   setup?: SetupState;
   surround?: SurroundState;
   system?: SystemState;
+  vfd?: VfdState;
+}
+
+export interface VfdState {
+  line1?: string;
+  line2?: string;
+  display?: string;
 }
 
 export interface AudioSignal {

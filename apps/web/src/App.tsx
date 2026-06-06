@@ -353,14 +353,52 @@ function signalLine(sig?: AppState['nad']['signal']): string {
   return parts.join('  ·  ');
 }
 
-/** Skeuomorphic re-creation of the NAD T 777 front display (VFD style). */
+/**
+ * Resolve what a configured NAD VFD line shows to its live text, so the panel
+ * mirrors the front display exactly (per Main.VFD.Line1 / Main.VFD.Line2).
+ */
+function vfdField(item: string | undefined, state: AppState): string {
+  const { nad } = state;
+  switch (item) {
+    case 'MainSource':
+      if (nad.mute) return 'MUTE';
+      return nad.source ? state.sourceNames[String(nad.source)] ?? `Source ${nad.source}` : '';
+    case 'Volume':
+      return nad.volumeDb !== undefined ? `${nad.volumeDb} dB` : '';
+    case 'ListeningMode':
+      return nad.listeningMode ?? '';
+    case 'AudioSourceFormat':
+      return signalLine(nad.signal);
+    case 'Zone2Source':
+      return state.zone2.source
+        ? state.sourceNames[String(state.zone2.source)] ?? `Source ${state.zone2.source}`
+        : '';
+    case 'Zone3Source':
+      return 'Zone 3';
+    case 'Zone4Source':
+      return 'Zone 4';
+    case 'Off':
+    case undefined:
+      return '';
+    default:
+      return item;
+  }
+}
+
+/**
+ * Skeuomorphic re-creation of the NAD T 777 front display (VFD style).
+ * Mirrors the device exactly: each row follows the receiver's own
+ * Main.VFD.Line1 / Line2 selection. Volume sits top-right as on the hardware.
+ */
 function NadDisplay({ state }: { state: AppState }) {
-  const { nad, nowPlaying } = state;
+  const { nad } = state;
   const off = nad.power === 'Off';
-  const srcName = nad.source ? state.sourceNames[String(nad.source)] ?? `Source ${nad.source}` : '—';
-  const title = nowPlaying.reachable ? nowPlaying.title : undefined;
-  const sig = signalLine(nad.signal);
   const dim = /on/i.test(nad.dimmer ?? '');
+  const vfd = nad.vfd ?? {};
+  const line1 = vfdField(vfd.line1, state);
+  const line2 = vfdField(vfd.line2, state);
+  // NBSP keeps row height stable when a line resolves to empty (e.g. "Off").
+  const nb = ' ';
 
   return (
     <div className={`vfd ${off ? 'vfd-off' : ''} ${dim ? 'vfd-dim' : ''}`}>
@@ -369,13 +407,11 @@ function NadDisplay({ state }: { state: AppState }) {
       ) : (
         <>
           <div className="vfd-row vfd-top">
-            <span className="vfd-src">{nad.mute ? 'MUTE' : srcName}</span>
+            <span className="vfd-src">{line1 || nb}</span>
             <span className="vfd-vol">{nad.volumeDb ?? '—'} dB</span>
           </div>
-          <div className="vfd-row vfd-mid">{title ?? nad.listeningMode ?? ''}</div>
           <div className="vfd-row vfd-bot">
-            <span>{nad.listeningMode ?? ''}</span>
-            <span className="vfd-sig">{sig}</span>
+            <span className="vfd-sig">{line2 || nb}</span>
           </div>
         </>
       )}
