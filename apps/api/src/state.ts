@@ -289,6 +289,11 @@ export class StateManager extends EventEmitter {
         trigger1Out: v.get('Main.Trigger1.Out'),
         trigger2Out: v.get('Main.Trigger2.Out'),
       },
+      vfd: {
+        line1: v.get('Main.VFD.Line1'),
+        line2: v.get('Main.VFD.Line2'),
+        display: v.get('Main.VFD.Display'),
+      },
     };
 
     const zone2Vol = num('Zone2.Volume');

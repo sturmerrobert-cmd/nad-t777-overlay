@@ -128,6 +128,10 @@ export class NadClient extends EventEmitter {
       'Main.ListeningMode',
       'Main.Dimmer',
       'Main.Sleep',
+      // Front-panel VFD: what each line is configured to show + display mode.
+      'Main.VFD.Line1',
+      'Main.VFD.Line2',
+      'Main.VFD.Display',
       // Incoming audio signal / format (shown on the receiver's display).
       'Main.Audio.CODEC',
       'Main.Audio.Channels',

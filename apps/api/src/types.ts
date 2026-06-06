@@ -21,6 +21,17 @@ export interface NadState {
   setup?: SetupState;
   surround?: SurroundState;
   system?: SystemState;
+  /** Front-panel VFD line configuration, mirrored into the UI display. */
+  vfd?: VfdState;
+}
+
+export interface VfdState {
+  /** What line 1 shows: MainSource | Volume | ListeningMode | AudioSourceFormat | Zone{2,3,4}Source | Off. */
+  line1?: string;
+  /** What line 2 shows (same value set as line 1). */
+  line2?: string;
+  /** Display mode: On (normal) | Temp (showing temperature). */
+  display?: string;
 }
 
 export interface AudioSignal {
