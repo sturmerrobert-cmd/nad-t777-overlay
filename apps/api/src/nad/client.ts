@@ -142,9 +142,16 @@ export class NadClient extends EventEmitter {
       // Bass management / speaker setup
       'Main.Speaker.Sub',
       'Main.EnhancedBass',
-      'Main.Level.Center',
-      'Main.Level.Sub',
       'Main.CenterDialog',
+      // Per-speaker calibration levels (each channel, -12..+12 dB).
+      'Main.Level.Left',
+      'Main.Level.Right',
+      'Main.Level.Center',
+      'Main.Level.SurroundLeft',
+      'Main.Level.SurroundRight',
+      'Main.Level.BackLeft',
+      'Main.Level.BackRight',
+      'Main.Level.Sub',
       'Main.Speaker.Front.Config',
       'Main.Speaker.Front.Frequency',
       'Main.Speaker.Center.Config',

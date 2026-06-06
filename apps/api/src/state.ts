@@ -253,7 +253,13 @@ export class StateManager extends EventEmitter {
       setup: {
         subOn: onOff('Main.Speaker.Sub'),
         enhancedBass: onOff('Main.EnhancedBass'),
+        levelFrontLeft: num('Main.Level.Left'),
+        levelFrontRight: num('Main.Level.Right'),
         levelCenter: num('Main.Level.Center'),
+        levelSurroundLeft: num('Main.Level.SurroundLeft'),
+        levelSurroundRight: num('Main.Level.SurroundRight'),
+        levelBackLeft: num('Main.Level.BackLeft'),
+        levelBackRight: num('Main.Level.BackRight'),
         levelSub: num('Main.Level.Sub'),
         centerDialog: num('Main.CenterDialog'),
         frontConfig: v.get('Main.Speaker.Front.Config'),
