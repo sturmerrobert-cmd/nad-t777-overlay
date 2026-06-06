@@ -391,12 +391,20 @@ function vfdField(item: string | undefined, state: AppState): string {
  * Main.VFD.Line1 / Line2 selection. Volume sits top-right as on the hardware.
  */
 function NadDisplay({ state }: { state: AppState }) {
-  const { nad } = state;
+  const { nad, nowPlaying } = state;
   const off = nad.power === 'Off';
   const dim = /on/i.test(nad.dimmer ?? '');
   const vfd = nad.vfd ?? {};
   const line1 = vfdField(vfd.line1, state);
   const line2 = vfdField(vfd.line2, state);
+  // Now-playing line from the streaming module (title · artist), shown like the
+  // NAD's own display does — but ONLY while BluOS is the active source. On other
+  // inputs BluOS reports a placeholder ("External Source"), which the receiver's
+  // own VFD never shows, so we suppress it to stay faithful.
+  const onBluos = state.bluosSourceIndex !== undefined && nad.source === state.bluosSourceIndex;
+  const np = onBluos && nowPlaying.reachable
+    ? [nowPlaying.title, nowPlaying.artist].filter(Boolean).join(' · ')
+    : '';
   // NBSP keeps row height stable when a line resolves to empty (e.g. "Off").
   const nb = ' ';
 
@@ -410,6 +418,7 @@ function NadDisplay({ state }: { state: AppState }) {
             <span className="vfd-src">{line1 || nb}</span>
             <span className="vfd-vol">{nad.volumeDb ?? '—'} dB</span>
           </div>
+          {np && <div className="vfd-row vfd-mid">{np}</div>}
           <div className="vfd-row vfd-bot">
             <span className="vfd-sig">{line2 || nb}</span>
           </div>
@@ -892,14 +901,29 @@ function useOptimistic<T>(incoming: T): [T, (v: T) => void, { current: number }]
 }
 
 function ToggleSetting({ label, k, on }: { label: string; k: string; on?: boolean }) {
-  const [local, setLocal] = useOptimistic(on);
-  const set = (v: boolean) => { setLocal(v); void api.setting(k, v); };
+  const [local, setLocal, editedAt] = useOptimistic(on);
+  const [error, setError] = useState<string | null>(null);
+  const onRef = useRef(on);
+  onRef.current = on;
+  useEffect(() => { setError(null); }, [on]);
+
+  const set = async (v: boolean) => {
+    setError(null);
+    setLocal(v);
+    const r = await api.setting(k, v);
+    if (!r.ok) {
+      setLocal(onRef.current);
+      editedAt.current = 0;
+      setError(r.error ?? r.reason ?? 'błąd zapisu');
+    }
+  };
   return (
-    <div className="setting-row">
+    <div className={`setting-row ${error ? 'err' : ''}`}>
       <span>{label}</span>
       <span className="seg">
-        <button className={`pill ${local ? 'active' : ''}`} onClick={() => set(true)}>{t('common.on')}</button>
-        <button className={`pill ${local === false ? 'active' : ''}`} onClick={() => set(false)}>{t('common.off')}</button>
+        <button className={`pill ${local ? 'active' : ''}`} onClick={() => void set(true)}>{t('common.on')}</button>
+        <button className={`pill ${local === false ? 'active' : ''}`} onClick={() => void set(false)}>{t('common.off')}</button>
+        {error && <span className="setting-err" title={error} role="alert">⚠</span>}
       </span>
     </div>
   );
@@ -924,6 +948,12 @@ function IntSetting({
 }: { label: string; k: string; value?: number; unit?: string; step?: number; min?: number; max?: number }) {
   const [local, setLocal, editedAt] = useOptimistic(value);
   const sendTimer = useRef<ReturnType<typeof setTimeout>>();
+  const [error, setError] = useState<string | null>(null);
+  // Latest device-confirmed value, for reverting an optimistic update on failure.
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  // A fresh confirmed value arriving clears any prior error (e.g. a retry worked).
+  useEffect(() => { setError(null); }, [value]);
 
   function bump(delta: number) {
     const base = local ?? value ?? 0;
@@ -931,18 +961,30 @@ function IntSetting({
     if (min !== undefined) next = Math.max(min, next);
     if (max !== undefined) next = Math.min(max, next);
     if (next === base) return;
+    setError(null);
     setLocal(next);
     editedAt.current = Date.now();
     clearTimeout(sendTimer.current);
-    sendTimer.current = setTimeout(() => { void api.setting(k, next); }, 160);
+    sendTimer.current = setTimeout(async () => {
+      const r = await api.setting(k, next);
+      if (!r.ok) {
+        // Write rejected/failed — drop the optimistic value back to what the
+        // device last confirmed and surface the reason, so a stuck number
+        // can't read as "applied" when it wasn't.
+        setLocal(valueRef.current);
+        editedAt.current = 0;
+        setError(r.error ?? r.reason ?? 'błąd zapisu');
+      }
+    }, 160);
   }
 
   return (
-    <div className="setting-row">
+    <div className={`setting-row ${error ? 'err' : ''}`}>
       <span>{label}</span>
       <span className="seg">
         <button className="step sm" onClick={() => bump(-step)}>−</button>
         <b className="setting-val">{local ?? '—'}{unit ? ` ${unit}` : ''}</b>
+        {error && <span className="setting-err" title={error} role="alert">⚠</span>}
         <button className="step sm" onClick={() => bump(+step)}>+</button>
       </span>
     </div>
@@ -950,15 +992,30 @@ function IntSetting({
 }
 
 function EnumSetting({ label, k, value, options }: { label: string; k: string; value?: string; options: string[] }) {
-  const [local, setLocal] = useOptimistic(value);
-  const set = (o: string) => { setLocal(o); void api.setting(k, o); };
+  const [local, setLocal, editedAt] = useOptimistic(value);
+  const [error, setError] = useState<string | null>(null);
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  useEffect(() => { setError(null); }, [value]);
+
+  const set = async (o: string) => {
+    setError(null);
+    setLocal(o);
+    const r = await api.setting(k, o);
+    if (!r.ok) {
+      setLocal(valueRef.current);
+      editedAt.current = 0;
+      setError(r.error ?? r.reason ?? 'błąd zapisu');
+    }
+  };
   return (
-    <div className="setting-row">
+    <div className={`setting-row ${error ? 'err' : ''}`}>
       <span>{label}</span>
       <span className="seg">
         {options.map((o) => (
-          <button key={o} className={`pill ${local === o ? 'active' : ''}`} onClick={() => set(o)}>{o}</button>
+          <button key={o} className={`pill ${local === o ? 'active' : ''}`} onClick={() => void set(o)}>{o}</button>
         ))}
+        {error && <span className="setting-err" title={error} role="alert">⚠</span>}
       </span>
     </div>
   );

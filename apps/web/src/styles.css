@@ -163,6 +163,8 @@ table.usage tr.usage-open td { background: rgba(74,163,255,.08); }
 /* Setting rows (Audio / System tabs) */
 .setting-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
 .setting-row:last-of-type { border-bottom: none; }
+.setting-row.err .setting-val { color: var(--bad); }
+.setting-err { color: var(--bad); cursor: help; font-size: 13px; line-height: 1; }
 .setting-row > span:first-child { color: var(--muted); font-size: 13px; }
 .seg { display: inline-flex; gap: 6px; align-items: center; }
 .seg .pill { padding: 5px 10px; font-size: 13px; }

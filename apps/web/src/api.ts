@@ -4,9 +4,13 @@ import type { AppState, BrowseResult, QueueItem, TrackEntry, UsageLog } from './
 export interface ApiResult {
   ok: boolean;
   reason?: string;
+  /** Error message from the settings endpoints (refused/clamped/etc.). */
+  error?: string;
   note?: string;
   targetDb?: number;
   clamped?: boolean;
+  /** Confirmed value echoed back by the settings endpoints. */
+  value?: string;
 }
 
 async function post(path: string, body: unknown): Promise<ApiResult> {
