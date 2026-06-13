@@ -1,8 +1,8 @@
 /**
- * BluOS client (HTTP GET, port 11000, UTF-8 XML).
+ * streaming module client (HTTP GET, port 11000, UTF-8 XML).
  *
  * Used read-mostly: now-playing from /Status, sync/volume from /SyncStatus,
- * plus presets and transport. The BluOS /Volume path is also clamped by the
+ * plus presets and transport. The streaming module /Volume path is also clamped by the
  * guarded service; primary volume enforcement is the NAD master volume.
  */
 
@@ -11,19 +11,19 @@ import type { BrowseItem, BrowseResult, NowPlaying, QueueItem } from '../types.j
 
 const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
 
-export interface BluOSClientOptions {
+export interface StreamClientOptions {
   host: string;
   port: number;
   timeoutMs?: number;
 }
 
-export class BluOSClient {
+export class StreamClient {
   private readonly base: string;
   private readonly timeoutMs: number;
 
-  constructor(opts: BluOSClientOptions) {
+  constructor(opts: StreamClientOptions) {
     this.base = `http://${opts.host}:${opts.port}`;
-    // Short timeout: BluOS's HTTP server can hang while the receiver is fine;
+    // Short timeout: streaming module's HTTP server can hang while the receiver is fine;
     // fail fast so polling/commands degrade gracefully instead of stalling.
     this.timeoutMs = opts.timeoutMs ?? 3000;
   }
@@ -68,8 +68,8 @@ export class BluOSClient {
         imageUrl: image ? (image.startsWith('http') ? image : this.base + image) : undefined,
         service: status.service,
         quality: status.quality,
-        bluosVolume: num(status.volume ?? sync['@_volume']),
-        bluosDb: num(status.db ?? sync['@_db']),
+        streamVolume: num(status.volume ?? sync['@_volume']),
+        streamDb: num(status.db ?? sync['@_db']),
       };
     } catch {
       return { reachable: false };
@@ -111,15 +111,15 @@ export class BluOSClient {
     return this.get('/Back');
   }
 
-  /** Set BluOS volume on the 0-100 scale (already clamp-decided by the service). */
+  /** Set streaming module volume on the 0-100 scale (already clamp-decided by the service). */
   setVolumePercent(level: number): Promise<unknown> {
     const clamped = Math.max(0, Math.min(100, Math.round(level)));
     return this.get(`/Volume?level=${clamped}`);
   }
 
   /**
-   * Browse the BluOS menu tree (services, radio, playlists, local library).
-   * Same navigation the BluOS app uses. `key` is an item's browseKey; omit for
+   * Browse the streaming module menu tree (services, radio, playlists, local library).
+   * Same navigation the streaming module app uses. `key` is an item's browseKey; omit for
    * the root menu.
    */
   async browse(key?: string): Promise<BrowseResult> {
@@ -174,7 +174,7 @@ export class BluOSClient {
     return this.get(path);
   }
 
-  /** True if the BluOS HTTP API (port 11000) is responding. */
+  /** True if the streaming module HTTP API (port 11000) is responding. */
   async isAlive(): Promise<boolean> {
     try {
       await this.get('/SyncStatus');
@@ -185,9 +185,9 @@ export class BluOSClient {
   }
 
   /**
-   * Attempt a remote reboot of the BluOS module.
+   * Attempt a remote reboot of the streaming module module.
    *
-   * Verified against this unit: BluOS exposes NO HTTP reboot endpoint — `/reboot`
+   * Verified against this unit: streaming module exposes NO HTTP reboot endpoint — `/reboot`
    * and every common variant return 404, and triggering it does not reboot the
    * module (port 11000 never drops). So we do NOT pretend: we probe and report
    * the truth. If a future firmware adds a 200-returning reboot path, it works.
@@ -197,7 +197,7 @@ export class BluOSClient {
       return {
         ok: false,
         detail:
-          'BluOS HTTP API (port 11000) is not responding. Power-cycle the receiver from the rear ' +
+          'streaming module HTTP API (port 11000) is not responding. Power-cycle the receiver from the rear ' +
           'switch (off ~30–60 s, then on).',
       };
     }
@@ -206,13 +206,13 @@ export class BluOSClient {
     try {
       const res = await fetch(this.base + '/reboot', { signal: controller.signal });
       if (res.ok) {
-        return { ok: true, detail: 'Reboot requested. BluOS should drop off and return in ~1–2 min.' };
+        return { ok: true, detail: 'Reboot requested. streaming module should drop off and return in ~1–2 min.' };
       }
       return {
         ok: false,
         detail:
-          `This BluOS module has no remote-reboot API (HTTP ${res.status}). Reboot it from the ` +
-          'BluOS app (Settings → Players → your player → Reboot) or power-cycle the receiver.',
+          `This streaming module module has no remote-reboot API (HTTP ${res.status}). Reboot it from the ` +
+          'streaming module app (Settings → Players → your player → Reboot) or power-cycle the receiver.',
       };
     } catch (e) {
       // A real reboot can drop the connection mid-response — but on this unit /reboot
@@ -220,7 +220,7 @@ export class BluOSClient {
       return {
         ok: false,
         detail:
-          `Could not confirm a reboot (${(e as Error).message}). Reboot from the BluOS app or ` +
+          `Could not confirm a reboot (${(e as Error).message}). Reboot from the streaming module app or ` +
           'power-cycle the receiver.',
       };
     } finally {

@@ -42,8 +42,8 @@ export interface CapabilitySpec {
    * tuner active). Silence then yields `unknown`, never `unsupported`.
    */
   stateDependent?: boolean;
-  /** Resolved externally (BluOS HTTP :11000, Dirac :5006) — not via the keys. */
-  external?: 'bluos' | 'dirac';
+  /** Resolved externally (streaming module HTTP :11000, Dirac :5006) — not via the keys. */
+  external?: 'stream' | 'dirac';
 }
 
 /**
@@ -89,7 +89,7 @@ export const CAPABILITIES: CapabilitySpec[] = [
   // Tuner keys answer only while the tuner is the active source → state-gated.
   { id: 'tuner', label: 'Tuner', keys: ['Tuner.Band', 'Tuner.FM.Frequency'], stateDependent: true },
   // Multi-room / streaming module + room correction, discovered out-of-band.
-  { id: 'bluos', label: 'BluOS streaming', keys: [], external: 'bluos' },
+  { id: 'stream', label: 'BO streaming', keys: [], external: 'stream' },
   { id: 'dirac', label: 'Dirac Live (:5006)', keys: [], external: 'dirac' },
 ];
 
@@ -103,8 +103,8 @@ export type DeviceCapabilities = Record<string, CapabilityStatus>;
 export interface CapabilityInputs {
   /** Has the discovery window elapsed? Before that, absence ⇒ `unknown`. */
   ready: boolean;
-  /** BluOS HTTP API (:11000) responded. */
-  bluos?: boolean;
+  /** streaming module HTTP API (:11000) responded. */
+  stream?: boolean;
   /** Dirac control port (:5006) is open. */
   dirac?: boolean;
   /** A source is named "Tuner" → tuner present even if not currently active. */
@@ -131,8 +131,8 @@ function classify(
   values: Map<string, string>,
   inputs: CapabilityInputs,
 ): CapabilityStatus {
-  if (cap.external === 'bluos') {
-    return inputs.bluos ? 'supported' : inputs.ready ? 'unsupported' : 'unknown';
+  if (cap.external === 'stream') {
+    return inputs.stream ? 'supported' : inputs.ready ? 'unsupported' : 'unknown';
   }
   if (cap.external === 'dirac') {
     return inputs.dirac ? 'supported' : inputs.ready ? 'unsupported' : 'unknown';

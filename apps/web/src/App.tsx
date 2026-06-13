@@ -29,8 +29,8 @@ function allUnsupported(state: AppState, ids: string[]): boolean {
 /** Tab → capabilities that justify showing it (any supported/unknown keeps it). */
 const TAB_CAPS: Partial<Record<TabId, string[]>> = {
   audio: ['tone', 'bassMgmt', 'speakerConfig', 'dolby', 'dts'],
-  playing: ['bluos'],
-  library: ['bluos'],
+  playing: ['stream'],
+  library: ['stream'],
   tuner: ['tuner'],
   zone2: ['zone2'],
 };
@@ -60,8 +60,8 @@ const CAP_LABELS: { id: string; label: string }[] = [
   { id: 'zone3', label: 'Zone 3' },
   { id: 'zone4', label: 'Zone 4' },
   { id: 'tuner', label: 'Tuner' },
-  // id stays 'bluos' (internal backend capability id); only the label is generic.
-  { id: 'bluos', label: 'Streaming' },
+  // id stays 'stream' (internal backend capability id); only the label is generic.
+  { id: 'stream', label: 'BO' },
   // Dirac listed only when explicitly enabled (off by default — see branding.ts).
   ...(DIRAC_ENABLED ? [{ id: 'dirac', label: 'Dirac' }] : []),
 ];
@@ -194,13 +194,13 @@ function AboutCard() {
 
 function ConnBadge({ connected, state }: { connected: boolean; state: AppState | null }) {
   const nad = state?.nad.reachable;
-  const bluos = state?.nowPlaying.reachable;
+  const stream = state?.nowPlaying.reachable;
   return (
     <div className="badges">
       <span className={`badge ${connected ? 'ok' : 'bad'}`}>{connected ? t('badge.live') : t('badge.offline')}</span>
       <span className={`badge ${nad ? 'ok' : 'bad'}`}>{t('badge.receiver')} {nad ? 'OK' : '—'}</span>
-      <span className={`badge ${bluos ? 'ok' : 'bad'}`} title={bluos ? '' : t('badge.streamDownHint')}>
-        {t('badge.streaming')} {bluos ? 'OK' : t('badge.down')}
+      <span className={`badge ${stream ? 'ok' : 'bad'}`} title={stream ? '' : t('badge.streamDownHint')}>
+        {t('badge.streaming')} {stream ? 'OK' : t('badge.down')}
       </span>
       {state?.nad.model && <span className="badge dim">{state.nad.model} {state.nad.version}</span>}
     </div>
@@ -398,11 +398,11 @@ function NadDisplay({ state }: { state: AppState }) {
   const line1 = vfdField(vfd.line1, state);
   const line2 = vfdField(vfd.line2, state);
   // Now-playing line from the streaming module (title · artist), shown like the
-  // NAD's own display does — but ONLY while BluOS is the active source. On other
-  // inputs BluOS reports a placeholder ("External Source"), which the receiver's
+  // NAD's own display does — but ONLY while the streaming module is the active source. On other
+  // inputs the streaming module reports a placeholder ("External Source"), which the receiver's
   // own VFD never shows, so we suppress it to stay faithful.
-  const onBluos = state.bluosSourceIndex !== undefined && nad.source === state.bluosSourceIndex;
-  const np = onBluos && nowPlaying.reachable
+  const onStream = state.streamSourceIndex !== undefined && nad.source === state.streamSourceIndex;
+  const np = onStream && nowPlaying.reachable
     ? [nowPlaying.title, nowPlaying.artist].filter(Boolean).join(' · ')
     : '';
   // NBSP keeps row height stable when a line resolves to empty (e.g. "Off").
@@ -444,8 +444,8 @@ function MainTab({ state }: { state: AppState }) {
             {nad.mute ? t('common.muted') : t('common.mute')}
           </button>
         </div>
-        {state.bluosSourceIndex && state.nad.source !== state.bluosSourceIndex && (
-          <button className="big-action" style={{ marginTop: 12 }} onClick={() => api.bluosActivate()}>
+        {state.streamSourceIndex && state.nad.source !== state.streamSourceIndex && (
+          <button className="big-action" style={{ marginTop: 12 }} onClick={() => api.streamActivate()}>
             {t('main.playOnNad')}
           </button>
         )}
@@ -487,7 +487,7 @@ function MainTab({ state }: { state: AppState }) {
           <li><span>{t('sig.lock')}</span><b>{nad.signal?.lock ?? '—'}</b></li>
           <li><span>{t('sig.video')}</span><b>{nad.signal?.videoResolution || '—'}</b></li>
           <li><span>{t('sig.delay')}</span><b>{nad.signal?.delay ?? '—'}</b></li>
-          <li><span>{t('sig.bluosQuality')}</span><b>{state.nowPlaying.quality ?? '—'}{state.nowPlaying.service ? ` · ${state.nowPlaying.service}` : ''}</b></li>
+          <li><span>{t('sig.streamQuality')}</span><b>{state.nowPlaying.quality ?? '—'}{state.nowPlaying.service ? ` · ${state.nowPlaying.service}` : ''}</b></li>
         </ul>
       </section>
       </Gate>
@@ -496,29 +496,29 @@ function MainTab({ state }: { state: AppState }) {
   );
 }
 
-function BluosModuleCard({ reachable }: { reachable: boolean }) {
+function StreamModuleCard({ reachable }: { reachable: boolean }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   async function reboot() {
-    if (!confirm(t('bluos.rebootConfirm'))) return;
+    if (!confirm(t('stream.rebootConfirm'))) return;
     setBusy(true); setMsg(null);
-    const r = (await api.bluosReboot()) as { ok: boolean; detail?: string; reason?: string };
+    const r = (await api.streamReboot()) as { ok: boolean; detail?: string; reason?: string };
     setBusy(false);
     setMsg(r.detail ?? r.reason ?? (r.ok ? 'Reboot requested.' : 'Failed.'));
   }
 
   return (
     <section className="card">
-      <h2>{t('bluos.module')}</h2>
+      <h2>{t('stream.module')}</h2>
       <div className="row" style={{ marginBottom: 8 }}>
-        <span className={`badge ${reachable ? 'ok' : 'bad'}`}>{reachable ? t('bluos.ok') : t('bluos.down')}</span>
-        <button className="pill" onClick={reboot} disabled={busy}>{t('bluos.tryReboot')}</button>
+        <span className={`badge ${reachable ? 'ok' : 'bad'}`}>{reachable ? t('stream.ok') : t('stream.down')}</span>
+        <button className="pill" onClick={reboot} disabled={busy}>{t('stream.tryReboot')}</button>
       </div>
-      <p className="muted" style={{ fontSize: 13 }}>{t('bluos.noRebootApi')}</p>
+      <p className="muted" style={{ fontSize: 13 }}>{t('stream.noRebootApi')}</p>
       <ul className="muted" style={{ fontSize: 13, margin: '4px 0 0', paddingLeft: 18 }}>
-        <li>{t('bluos.rebootApp')}</li>
-        <li>{t('bluos.rebootPower')}</li>
+        <li>{t('stream.rebootApp')}</li>
+        <li>{t('stream.rebootPower')}</li>
       </ul>
       {msg && <p className={msg.toLowerCase().includes('reboot requested') ? 'muted' : 'reject'}>{msg}</p>}
     </section>
@@ -535,8 +535,8 @@ function PlayingTab({ state }: { state: AppState }) {
     tick(); const id = setInterval(tick, 4000); return () => clearInterval(id);
   }, []);
 
-  const bluosIdx = state.bluosSourceIndex;
-  const onBluos = state.nad.source !== undefined && state.nad.source === bluosIdx;
+  const streamIdx = state.streamSourceIndex;
+  const onStream = state.nad.source !== undefined && state.nad.source === streamIdx;
   const playing = /^(play|stream)/i.test(np.state ?? '');
   const srcName = state.nad.source ? state.sourceNames[String(state.nad.source)] ?? String(state.nad.source) : '—';
 
@@ -544,22 +544,22 @@ function PlayingTab({ state }: { state: AppState }) {
     <div className="grid">
       <section className="card">
         <h2>{t('play.title')}</h2>
-        <button className="big-action" onClick={() => api.bluosActivate()} disabled={!bluosIdx}>
+        <button className="big-action" onClick={() => api.streamActivate()} disabled={!streamIdx}>
           {t('play.playNow')}
         </button>
         <div className="row" style={{ margin: '10px 0' }}>
-          <span className={`badge ${onBluos ? 'ok' : 'dim'}`}>
-            {onBluos ? t('play.onBluos') : t('play.sourceIs', { name: srcName })}
+          <span className={`badge ${onStream ? 'ok' : 'dim'}`}>
+            {onStream ? t('play.onStream') : t('play.sourceIs', { name: srcName })}
           </span>
           {playing && <span className="badge ok">{t('play.streaming')}</span>}
         </div>
         <p className="muted">{t('play.explain')}</p>
         <ToggleSettingRaw label={t('play.autoSwitch')} on={state.autoSwitchOnPlay} onSet={(v) => api.autoswitch(v)} />
         <p className="muted" style={{ fontSize: 12 }}>{t('play.autoNote')}</p>
-        {!bluosIdx && <p className="reject">{t('play.noBluos')}</p>}
+        {!streamIdx && <p className="reject">{t('play.noStream')}</p>}
       </section>
 
-      <BluosModuleCard reachable={!!np.reachable} />
+      <StreamModuleCard reachable={!!np.reachable} />
 
       <section className="card nowplaying">
         <h2>{t('play.nowPlaying')} <span className="muted">({t('play.viaStreaming')})</span></h2>
@@ -581,10 +581,10 @@ function PlayingTab({ state }: { state: AppState }) {
           </div>
         )}
         <div className="row">
-          <button className="pill" onClick={() => api.bluosTransport('back')}>⏮</button>
-          <button className="pill" onClick={() => api.bluosTransport('play')}>▶</button>
-          <button className="pill" onClick={() => api.bluosTransport('pause')}>⏸</button>
-          <button className="pill" onClick={() => api.bluosTransport('skip')}>⏭</button>
+          <button className="pill" onClick={() => api.streamTransport('back')}>⏮</button>
+          <button className="pill" onClick={() => api.streamTransport('play')}>▶</button>
+          <button className="pill" onClick={() => api.streamTransport('pause')}>⏸</button>
+          <button className="pill" onClick={() => api.streamTransport('skip')}>⏭</button>
         </div>
       </section>
 
@@ -595,7 +595,7 @@ function PlayingTab({ state }: { state: AppState }) {
         ) : (
           <div className="row wrap">
             {presets.map((p) => (
-              <button key={p.id} className="pill" onClick={() => api.bluosPreset(p.id)}>{p.id}. {p.name}</button>
+              <button key={p.id} className="pill" onClick={() => api.streamPreset(p.id)}>{p.id}. {p.name}</button>
             ))}
           </div>
         )}
@@ -637,7 +637,7 @@ function LibraryTab() {
 
   function open(item: BrowseItem) {
     if (item.browseKey) setCrumbs([...crumbs, { key: item.browseKey, label: item.text }]);
-    else if (item.playURL) void api.bluosPlayUrl(item.playURL);
+    else if (item.playURL) void api.streamPlayUrl(item.playURL);
   }
   function goto(i: number) { setCrumbs(crumbs.slice(0, i + 1)); }
 

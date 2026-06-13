@@ -15,7 +15,7 @@ const SECTIONS = [
     'A re-creation of the NAD front display: source, volume, now-playing, listening mode and the live incoming signal (codec, channels, rate, lock).',
     'Power on/off, mute, and the guarded volume (− / + buttons and a slider that cannot go above your cap).',
     'Source grid uses the names configured in your receiver. Listening mode and a Signal / quality card (codec, channels, sample rate, video, A/V delay).',
-    'When you are not on the BluOS source, a “Play on NAD (BluOS)” shortcut appears.',
+    'When you are not on the BO source, a “Play on NAD (BO)” shortcut appears.',
   ]],
   ['7.png', 'Sound', [
     'Tone: Bass, Treble and Tone defeat (bypass).',
@@ -25,15 +25,15 @@ const SECTIONS = [
     'All controls react instantly and accumulate on rapid clicks; the receiver echoes the value back within ~1.5 s.',
   ]],
   ['8.png', 'Playback', [
-    '“Play on NAD now” — one click powers on, switches to BluOS and resumes the stream (e.g. Spotify). Volume is never changed.',
-    'Optional auto-switch to BluOS when playback starts. Note: on another source the receiver hides BluOS as “External Source”, so the button is the reliable way.',
-    'BluOS module card shows status and how to reboot it (the module has no remote-reboot API — use the BluOS app or a rear-panel power-cycle).',
-    'Now-playing with cover art, transport (back/play/pause/skip), BluOS presets and the current play queue.',
+    '“Play on NAD now” — one click powers on, switches to BO and resumes the stream (e.g. Spotify). Volume is never changed.',
+    'Optional auto-switch to BO when playback starts. Note: on another source the receiver hides BO as “External Source”, so the button is the reliable way.',
+    'BO streaming module card shows status and how to reboot it (the module has no remote-reboot API — use the BO app or a rear-panel power-cycle).',
+    'Now-playing with cover art, transport (back/play/pause/skip), BO presets and the current play queue.',
   ]],
   ['9.png', 'Library', [
-    'Browse BluOS exactly like the BluOS app: Playlists, Radio, Spotify, TIDAL, TuneIn and — when you connect a NAS/USB — your local library. Tap to drill in or play.',
+    'Browse BO exactly like the BO app: Playlists, Radio, Spotify, TIDAL, TuneIn and — when you connect a NAS/USB — your local library. Tap to drill in or play.',
     'My track list captures what you heard (titles / artists only — never audio) and exports to CSV.',
-    'A legal “shopping list”: buy the files (Bandcamp / Qobuz / 7digital) or add them to a NAS so BluOS plays them locally.',
+    'A legal “shopping list”: buy the files (Bandcamp / Qobuz / 7digital) or add them to a NAS so BO plays them locally.',
   ]],
   ['10.png', 'Tuner', [
     'Band (FM / AM), tuning (◀ / ▶) and FM presets P1–P10.',

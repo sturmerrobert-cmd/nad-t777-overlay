@@ -2,20 +2,21 @@
  * Single source of truth for product branding.
  *
  * The product is INDEPENDENT and UNOFFICIAL. Brand names of third parties
- * (NAD, BluOS, Dolby, DTS, Dirac) must NOT appear as our branding — only
+ * (NAD, Dolby, DTS, Dirac) must NOT appear as our branding — only
  * descriptively, to state hardware compatibility (nominative use; see
- * DISCLAIMER.txt). Device-reported labels (e.g. SourceN.Name) are NOT our
- * branding and are rendered as-is.
+ * DISCLAIMER.txt). We do NOT use the streaming-module trademark at all: its
+ * built-in streamer is referred to only generically ("streaming module", brand
+ * "BO"). Device-reported labels (e.g. SourceN.Name) are NOT our branding and
+ * are rendered as-is.
  */
 export const PRODUCT_NAME = 'Receiver HQ';
 
 /**
  * One-time, descriptive compatibility line for the About screen / store / README.
- * Allowed BluOS form is "[product] (compatible with BluOS)" — never
- * "[product] - BluOS" or "Powered with BluOS". Descriptive use only;
- * to be backed by written Lenbrook consent (see LENBROOK-EMAIL.md).
+ * Trademark-free: names only NAD (descriptive) and the generic "streaming
+ * modules" category — never a third-party streaming brand.
  */
-export const COMPAT_LINE = `${PRODUCT_NAME} — kompatybilny z amplitunerami NAD (BluOS)`;
+export const COMPAT_LINE = `${PRODUCT_NAME} — kompatybilny z amplitunerami NAD oraz ich modułami streamującymi`;
 
 /**
  * Dirac is the highest legal risk (trademark requires prior written consent;

@@ -10,7 +10,7 @@ import websocket from '@fastify/websocket';
 import cors from '@fastify/cors';
 import { z } from 'zod';
 import type { NadClient } from './nad/client.js';
-import type { BluOSClient } from './bluos/client.js';
+import type { StreamClient } from './stream/client.js';
 import type { VolumeService } from './volume/service.js';
 import type { UsageLogger } from './usage/logger.js';
 import type { TrackLogger } from './tracks/logger.js';
@@ -22,7 +22,7 @@ import { isHostAllowed, isOriginAllowed } from './security.js';
 interface Deps {
   cfg: AppConfig;
   nad: NadClient;
-  bluos: BluOSClient;
+  stream: StreamClient;
   volume: VolumeService;
   usage: UsageLogger;
   tracks: TrackLogger;
@@ -30,7 +30,7 @@ interface Deps {
 }
 
 export async function buildServer(deps: Deps, opts?: { logger?: boolean }) {
-  const { cfg, nad, bluos, volume, usage, tracks, state } = deps;
+  const { cfg, nad, stream, volume, usage, tracks, state } = deps;
   const app = Fastify({ logger: opts?.logger === false ? false : { level: 'info' } });
 
   // --- Network hardening (the API controls an amplifier) ---
@@ -253,31 +253,31 @@ export async function buildServer(deps: Deps, opts?: { logger?: boolean }) {
     return { ok: true };
   });
 
-  // ---------- BluOS browse / queue / play (same control the BluOS app uses) ----------
-  app.get('/api/bluos/browse', async (req) => {
+  // ---------- streaming module browse / queue / play (same control the streaming module app uses) ----------
+  app.get('/api/stream/browse', async (req) => {
     const q = req.query as { key?: string };
-    return bluos.browse(q.key);
+    return stream.browse(q.key);
   });
 
-  app.get('/api/bluos/queue', async () => ({ queue: await bluos.getQueue() }));
+  app.get('/api/stream/queue', async () => ({ queue: await stream.getQueue() }));
 
-  app.post('/api/bluos/play-url', async (req, reply) => {
+  app.post('/api/stream/play-url', async (req, reply) => {
     const b = z.object({ url: z.string().min(1) }).safeParse(req.body);
     if (!b.success) return reply.code(400).send({ ok: false, error: 'url required' });
     try {
-      await bluos.playUrl(b.data.url);
+      await stream.playUrl(b.data.url);
       return { ok: true };
     } catch {
-      return reply.code(503).send({ ok: false, error: 'BluOS unreachable' });
+      return reply.code(503).send({ ok: false, error: 'streaming module unreachable' });
     }
   });
 
-  // ---------- BluOS reboot (only works while the API is responsive) ----------
-  app.post('/api/bluos/reboot', async () => {
-    return bluos.reboot();
+  // ---------- streaming module reboot (only works while the API is responsive) ----------
+  app.post('/api/stream/reboot', async () => {
+    return stream.reboot();
   });
 
-  // ---------- BluOS auto-switch + manual activate ----------
+  // ---------- streaming module auto-switch + manual activate ----------
   app.post('/api/autoswitch', async (req, reply) => {
     const b = z.object({ on: z.boolean() }).safeParse(req.body);
     if (!b.success) return reply.code(400).send({ ok: false, error: 'on:boolean required' });
@@ -285,33 +285,33 @@ export async function buildServer(deps: Deps, opts?: { logger?: boolean }) {
     return { ok: true, autoSwitchOnPlay: b.data.on };
   });
 
-  // Manually route the receiver to BluOS (power on + select source). No volume change.
-  app.post('/api/bluos/activate', async () => {
-    return state.activateBluos('manual');
+  // Manually route the receiver to streaming module (power on + select source). No volume change.
+  app.post('/api/stream/activate', async () => {
+    return state.activateStream('manual');
   });
 
-  // ---------- BluOS presets + transport ----------
-  app.get('/api/bluos/presets', async () => ({ presets: await bluos.getPresets() }));
+  // ---------- streaming module presets + transport ----------
+  app.get('/api/stream/presets', async () => ({ presets: await stream.getPresets() }));
 
-  app.post('/api/bluos/preset', async (req, reply) => {
+  app.post('/api/stream/preset', async (req, reply) => {
     const b = z.object({ id: z.number().int() }).safeParse(req.body);
     if (!b.success) return reply.code(400).send({ ok: false, error: 'id:int required' });
     try {
-      await bluos.loadPreset(b.data.id);
+      await stream.loadPreset(b.data.id);
       return { ok: true };
     } catch {
-      return reply.code(503).send({ ok: false, error: 'BluOS unreachable' });
+      return reply.code(503).send({ ok: false, error: 'streaming module unreachable' });
     }
   });
 
-  app.post('/api/bluos/transport', async (req, reply) => {
+  app.post('/api/stream/transport', async (req, reply) => {
     const b = z.object({ action: z.enum(['play', 'pause', 'skip', 'back']) }).safeParse(req.body);
     if (!b.success) return reply.code(400).send({ ok: false, error: 'action required' });
     try {
-      await bluos[b.data.action]();
+      await stream[b.data.action]();
       return { ok: true };
     } catch {
-      return reply.code(503).send({ ok: false, error: 'BluOS unreachable' });
+      return reply.code(503).send({ ok: false, error: 'streaming module unreachable' });
     }
   });
 

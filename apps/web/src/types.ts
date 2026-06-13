@@ -108,8 +108,8 @@ export interface NowPlaying {
   album?: string;
   imageUrl?: string;
   service?: string;
-  bluosVolume?: number;
-  bluosDb?: number;
+  streamVolume?: number;
+  streamDb?: number;
   quality?: string;
 }
 
@@ -190,7 +190,7 @@ export interface AppState {
   zone2Safety: ChannelSafety;
   sourceNames: Record<string, string>;
   tunerSourceIndex?: number;
-  bluosSourceIndex?: number;
+  streamSourceIndex?: number;
   autoSwitchOnPlay: boolean;
   diracAvailable: boolean;
   capabilities: DeviceCapabilities;

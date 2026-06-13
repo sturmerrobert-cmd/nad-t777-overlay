@@ -1,11 +1,11 @@
 /**
- * State manager: polls NAD + BluOS, builds the AppState snapshot pushed to the
+ * State manager: polls NAD + BO, builds the AppState snapshot pushed to the
  * UI, and runs the over-cap alert / optional watchdog. It never raises volume.
  */
 
 import { EventEmitter } from 'node:events';
 import type { NadClient } from './nad/client.js';
-import type { BluOSClient } from './bluos/client.js';
+import type { StreamClient } from './stream/client.js';
 import type { VolumeService } from './volume/service.js';
 import type { UsageLogger } from './usage/logger.js';
 import type { TrackLogger } from './tracks/logger.js';
@@ -33,10 +33,10 @@ export class StateManager extends EventEmitter {
   /** UI overrides for source names (take precedence over device names). */
   private nameOverrides: Record<number, string> = {};
   private autoSwitchOnPlay: boolean;
-  /** Whether we've already acted for the current BluOS playing session. */
+  /** Whether we've already acted for the current BO playing session. */
   private autoHandled = false;
-  /** Guards against BluOS request pile-up when its HTTP server is slow/hung. */
-  private bluosInFlight = false;
+  /** Guards against BO request pile-up when its HTTP server is slow/hung. */
+  private streamInFlight = false;
   /** Capability discovery: true once the probe window has elapsed. */
   private capabilitiesReady = false;
   /** Dirac control port (:5006) reachable — set by the connect-time probe. */
@@ -46,7 +46,7 @@ export class StateManager extends EventEmitter {
 
   constructor(
     private readonly nad: NadClient,
-    private readonly bluos: BluOSClient,
+    private readonly stream: StreamClient,
     private readonly volume: VolumeService,
     private readonly usage: UsageLogger,
     private readonly tracks: TrackLogger,
@@ -153,9 +153,9 @@ export class StateManager extends EventEmitter {
   }
 
   private poll(): void {
-    // NAD control (TCP) is fast and must never be blocked by a slow/dead BluOS.
+    // NAD control (TCP) is fast and must never be blocked by a slow/dead BO.
     if (this.nad.isConnected()) this.nad.pollState();
-    this.refreshBluos(); // independent, non-blocking — see below
+    this.refreshStream(); // independent, non-blocking — see below
     this.rebuildNad(); // push NAD state immediately every tick
 
     // Sample usage once per poll cycle (source + volume over time).
@@ -166,26 +166,26 @@ export class StateManager extends EventEmitter {
     // Capture distinct played tracks (metadata only) for the "shopping list".
     this.tracks.observe(this.state.nowPlaying, Date.now());
 
-    // Auto-switch the receiver to BluOS when a stream starts (never touches volume).
+    // Auto-switch the receiver to BO when a stream starts (never touches volume).
     this.evaluateAutoSwitch();
   }
 
   /**
-   * Fetch BluOS now-playing independently of the NAD poll. A hung BluOS (its
+   * Fetch BO now-playing independently of the NAD poll. A hung BO (its
    * HTTP server can crash while the receiver itself is fine) must not stall NAD
    * control/state. The in-flight guard prevents request pile-up when it's slow.
    */
-  private refreshBluos(): void {
-    if (this.bluosInFlight) return;
-    this.bluosInFlight = true;
-    void this.bluos
+  private refreshStream(): void {
+    if (this.streamInFlight) return;
+    this.streamInFlight = true;
+    void this.stream
       .getNowPlaying()
       .then((nowPlaying) => {
         this.state = { ...this.state, nowPlaying, updatedAt: Date.now() };
         this.emit('state', this.state);
       })
       .finally(() => {
-        this.bluosInFlight = false;
+        this.streamInFlight = false;
       });
   }
 
@@ -193,11 +193,11 @@ export class StateManager extends EventEmitter {
   private buildSourceNames(): {
     names: Record<string, string>;
     tunerIndex?: number;
-    bluosIndex?: number;
+    streamIndex?: number;
   } {
     const names: Record<string, string> = {};
     let tunerIndex: number | undefined;
-    let bluosIndex: number | undefined;
+    let streamIndex: number | undefined;
     for (let i = 1; i <= 12; i++) {
       // `dev` is the input label REPORTED BY THE DEVICE (SourceN.Name), e.g. the
       // receiver may name an input "BluOS" or "Tuner". These are the device's own
@@ -208,9 +208,9 @@ export class StateManager extends EventEmitter {
       const name = this.nameOverrides[i] ?? dev ?? DEFAULT_SOURCE_NAMES[i] ?? `Source ${i}`;
       names[i] = name;
       if (dev && /tuner/i.test(dev)) tunerIndex = i;
-      if (dev && /blu\s*os/i.test(dev)) bluosIndex = i;
+      if (dev && /blu\s*os/i.test(dev)) streamIndex = i;
     }
-    return { names, tunerIndex, bluosIndex };
+    return { names, tunerIndex, streamIndex };
   }
 
   private rebuildNad(): void {
@@ -307,7 +307,7 @@ export class StateManager extends EventEmitter {
       volumeFixed: num('Zone2.VolumeFixed'),
     };
 
-    const { names, tunerIndex, bluosIndex } = this.buildSourceNames();
+    const { names, tunerIndex, streamIndex } = this.buildSourceNames();
     const tuner: TunerState = {
       active: tunerIndex !== undefined && nad.source === tunerIndex,
       band: v.get('Tuner.Band'),
@@ -331,7 +331,7 @@ export class StateManager extends EventEmitter {
 
     const capabilities = computeCapabilities(v, {
       ready: this.capabilitiesReady,
-      bluos: this.state.nowPlaying.reachable,
+      stream: this.state.nowPlaying.reachable,
       dirac: this.diracOpen,
       tunerSourceIndex: tunerIndex,
     });
@@ -343,7 +343,7 @@ export class StateManager extends EventEmitter {
       tuner,
       sourceNames: names,
       tunerSourceIndex: tunerIndex,
-      bluosSourceIndex: bluosIndex,
+      streamSourceIndex: streamIndex,
       autoSwitchOnPlay: this.autoSwitchOnPlay,
       safety: { ...this.state.safety, overCapAlert },
       diracAvailable: capabilities.dirac === 'supported',
@@ -362,23 +362,23 @@ export class StateManager extends EventEmitter {
     this.emit('state', this.state);
   }
 
-  /** Is BluOS actively playing (vs paused/stopped)? */
+  /** Is BO actively playing (vs paused/stopped)? */
   private static isPlaying(npState?: string): boolean {
     return npState !== undefined && /^(play|stream)/i.test(npState);
   }
 
   /**
-   * Route the NAD to BluOS so a stream is actually audible: power on if off and
-   * select the BluOS source. NEVER changes volume (G2). Used by the auto-switch
+   * Route the NAD to BO so a stream is actually audible: power on if off and
+   * select the BO source. NEVER changes volume (G2). Used by the auto-switch
    * edge trigger and the manual "play on NAD" button.
    *
    * @returns a short status for the manual caller.
    */
-  activateBluos(reason: 'auto' | 'manual'): { ok: boolean; message: string } {
-    const idx = this.state.bluosSourceIndex;
+  activateStream(reason: 'auto' | 'manual'): { ok: boolean; message: string } {
+    const idx = this.state.streamSourceIndex;
     if (idx === undefined) {
-      const m = 'no BluOS source detected on the receiver (no source named "BluOS")';
-      this.log('warn', `activateBluos(${reason}): ${m}`);
+      const m = 'no streaming source detected on the receiver (no input named "BluOS")';
+      this.log('warn', `activateStream(${reason}): ${m}`);
       return { ok: false, message: m };
     }
     const nad = this.state.nad;
@@ -392,10 +392,10 @@ export class StateManager extends EventEmitter {
       }
       if (nad.source !== idx) {
         this.nad.setSource(idx);
-        actions.push(`source → BluOS (${idx})`);
-        // Selecting the BluOS source re-attaches the stream; nudge Play so it
+        actions.push(`source → BO (${idx})`);
+        // Selecting the BO source re-attaches the stream; nudge Play so it
         // resumes deterministically (manual "play on NAD"). Fire-and-forget.
-        void this.bluos.play().catch(() => {});
+        void this.stream.play().catch(() => {});
       }
     } catch (e) {
       return { ok: false, message: `failed: ${(e as Error).message}` };
@@ -403,21 +403,21 @@ export class StateManager extends EventEmitter {
     // Volume is deliberately left untouched (G2).
     const msg =
       actions.length > 0
-        ? `${reason === 'auto' ? 'Auto-switched' : 'Switched'} to BluOS: ${actions.join(', ')} (volume unchanged)`
-        : 'already on BluOS';
+        ? `${reason === 'auto' ? 'Auto-switched' : 'Switched'} to BO: ${actions.join(', ')} (volume unchanged)`
+        : 'already on BO';
     if (actions.length > 0) {
-      this.log('info', `activateBluos(${reason}): ${actions.join(', ')}`);
+      this.log('info', `activateStream(${reason}): ${actions.join(', ')}`);
       this.setNotice(msg);
     }
     return { ok: true, message: msg };
   }
 
   /**
-   * Auto-switch to BluOS once per playing session (called each poll).
+   * Auto-switch to BO once per playing session (called each poll).
    *
    * Acts when a stream is playing and we haven't handled this session yet — so it
    * fires even if playback was already running when auto-switch was enabled. After
-   * acting (or if already on BluOS), it marks the session handled, so a later
+   * acting (or if already on BO), it marks the session handled, so a later
    * MANUAL source change while the stream keeps playing is not yanked back.
    * Resets when playback stops/pauses.
    */
@@ -428,9 +428,9 @@ export class StateManager extends EventEmitter {
       return;
     }
     if (!this.autoSwitchOnPlay || this.autoHandled) return;
-    if (this.state.bluosSourceIndex === undefined) return;
+    if (this.state.streamSourceIndex === undefined) return;
 
-    const r = this.activateBluos('auto');
+    const r = this.activateStream('auto');
     if (r.ok) this.autoHandled = true; // handled for this session
   }
 }

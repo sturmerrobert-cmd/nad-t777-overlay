@@ -122,9 +122,9 @@ export interface NowPlaying {
   album?: string;
   imageUrl?: string;
   service?: string;
-  /** BluOS 0-100 volume + its dB readout (for cross-check, not control). */
-  bluosVolume?: number;
-  bluosDb?: number;
+  /** streaming module 0-100 volume + its dB readout (for cross-check, not control). */
+  streamVolume?: number;
+  streamDb?: number;
   quality?: string;
 }
 
@@ -163,9 +163,9 @@ export interface AppState {
   sourceNames: Record<string, string>;
   /** Which source index is the tuner (from device names), if any. */
   tunerSourceIndex?: number;
-  /** Which source index is BluOS (from device names), if any. */
-  bluosSourceIndex?: number;
-  /** When true, auto-switch source to BluOS (+power on) on playback start. */
+  /** Which source index is streaming module (from device names), if any. */
+  streamSourceIndex?: number;
+  /** When true, auto-switch source to streaming module (+power on) on playback start. */
   autoSwitchOnPlay: boolean;
   /** Dirac control port (:5006) reachable — probed at connect. */
   diracAvailable: boolean;
@@ -211,7 +211,7 @@ export interface TrackEntry {
   plays: number;
 }
 
-/** One BluOS browse menu item. */
+/** One streaming module browse menu item. */
 export interface BrowseItem {
   text: string;
   type?: string; // link | audio | ...

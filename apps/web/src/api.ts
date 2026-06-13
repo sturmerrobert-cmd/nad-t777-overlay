@@ -48,20 +48,20 @@ export const api = {
   tunerPreset: (n: number) => post('/api/tuner/preset', { n }),
   tunerMute: (on: boolean) => post('/api/tuner/mute', { on }),
   tunerTune: (dir: 'up' | 'down') => post('/api/tuner/tune', { dir }),
-  // Auto-switch source to BluOS on playback + manual activate (never volume)
+  // Auto-switch source to the streaming module on playback + manual activate (never volume)
   autoswitch: (on: boolean) => post('/api/autoswitch', { on }),
-  bluosActivate: () => post('/api/bluos/activate', {}),
-  bluosReboot: () => post('/api/bluos/reboot', {}),
-  // BluOS browse / play (same control as the BluOS app)
-  bluosPlayUrl: (url: string) => post('/api/bluos/play-url', { url }),
+  streamActivate: () => post('/api/stream/activate', {}),
+  streamReboot: () => post('/api/stream/reboot', {}),
+  // the streaming module browse / play (same control as the the streaming module app)
+  streamPlayUrl: (url: string) => post('/api/stream/play-url', { url }),
   tracksClear: () => post('/api/tracks/clear', {}),
   // Generic allowlisted settings (never volume — server refuses volume keys)
   setting: (key: string, value: string | boolean | number) => post('/api/setting', { key, value }),
   settingStep: (key: string, delta: number) => post('/api/setting/step', { key, delta }),
-  // BluOS
-  bluosPreset: (id: number) => post('/api/bluos/preset', { id }),
-  bluosTransport: (action: 'play' | 'pause' | 'skip' | 'back') =>
-    post('/api/bluos/transport', { action }),
+  // the streaming module
+  streamPreset: (id: number) => post('/api/stream/preset', { id }),
+  streamTransport: (action: 'play' | 'pause' | 'skip' | 'back') =>
+    post('/api/stream/transport', { action }),
 };
 
 export async function fetchUsage(limit = 200): Promise<UsageLog> {
@@ -88,7 +88,7 @@ export async function fetchTracks(limit = 1000): Promise<TrackEntry[]> {
 
 export async function fetchBrowse(key?: string): Promise<BrowseResult> {
   try {
-    const res = await fetch(`/api/bluos/browse${key ? `?key=${encodeURIComponent(key)}` : ''}`);
+    const res = await fetch(`/api/stream/browse${key ? `?key=${encodeURIComponent(key)}` : ''}`);
     return (await res.json()) as BrowseResult;
   } catch {
     return { items: [] };
@@ -97,7 +97,7 @@ export async function fetchBrowse(key?: string): Promise<BrowseResult> {
 
 export async function fetchQueue(): Promise<QueueItem[]> {
   try {
-    const res = await fetch('/api/bluos/queue');
+    const res = await fetch('/api/stream/queue');
     return ((await res.json()) as { queue: QueueItem[] }).queue ?? [];
   } catch {
     return [];
@@ -106,7 +106,7 @@ export async function fetchQueue(): Promise<QueueItem[]> {
 
 export async function fetchPresets(): Promise<Array<{ id: number; name: string }>> {
   try {
-    const res = await fetch('/api/bluos/presets');
+    const res = await fetch('/api/stream/presets');
     const j = (await res.json()) as { presets: Array<{ id: number; name: string }> };
     return j.presets ?? [];
   } catch {

@@ -58,7 +58,7 @@ const schema = z.object({
   // (overrides the physical remote/knob — that is why it defaults off).
   VOLUME_WATCHDOG: boolDefault(false),
 
-  // Auto-switch the NAD source to BluOS (and power on) when BluOS playback
+  // Auto-switch the NAD source to streaming module (and power on) when streaming module playback
   // starts. Never touches volume. Runtime-toggleable; this is just the default.
   AUTOSWITCH_ON_PLAY: boolDefault(false),
 
@@ -81,7 +81,7 @@ const schema = z.object({
   ALLOW_LAN: boolDefault(false),
 
   NAD_PORT: numDefault(23),
-  BLUOS_PORT: numDefault(11000),
+  STREAM_PORT: numDefault(11000),
   HTTP_PORT: numDefault(8787),
   POLL_INTERVAL_MS: numDefault(1500),
   // Min gap between outbound volume commands (rate limit, rule 4).

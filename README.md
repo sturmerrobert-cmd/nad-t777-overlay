@@ -2,20 +2,20 @@
 
 Lokalna aplikacja webowa do sterowania i monitoringu amplitunera kina domowego NAD
 T 777. Komunikuje się bezpośrednio z urządzeniem w sieci LAN (protokół NAD V2.x po
-TCP oraz BluOS po HTTP) — **bez chmury, bez kont, bez zależności od zewnętrznych
+TCP oraz moduł streamujący BO po HTTP) — **bez chmury, bez kont, bez zależności od zewnętrznych
 usług**. Sercem projektu jest *server-side volume guard*: warstwa bezpieczeństwa,
 która gwarantuje, że oprogramowanie nigdy nie przekroczy ustawionego limitu
 głośności ani nie podniesie jej samo z siebie — istotne, bo aplikacja steruje
 realnym wzmacniaczem mocy i głośnikami.
 
 > Niezależny, nieoficjalny projekt. Niepowiązany z NAD ani Lenbrook Industries.
-> Nazwy „NAD", „BluOS", „Dirac" użyte wyłącznie opisowo (kompatybilność sprzętowa).
+> Nazwy „NAD", „Dirac" użyte wyłącznie opisowo (kompatybilność sprzętowa).
 
 ## Zrzuty ekranu
 
-| Główne — wyświetlacz VFD | Odtwarzanie (BluOS) |
+| Główne — wyświetlacz VFD | Odtwarzanie (BO) |
 |---|---|
-| ![Zakładka Główne z odwzorowaniem wyświetlacza VFD NAD T 777](docs/01-main-vfd.png) | ![Zakładka Odtwarzanie — now-playing BluOS z transportem i presetami](docs/02-now-playing.png) |
+| ![Zakładka Główne z odwzorowaniem wyświetlacza VFD NAD T 777](docs/01-main-vfd.png) | ![Zakładka Odtwarzanie — now-playing BO z transportem i presetami](docs/02-now-playing.png) |
 
 | Dźwięk | System |
 |---|---|
@@ -34,7 +34,7 @@ realnym wzmacniaczem mocy i głośnikami.
     backend **odmawia startu bez `MAX_VOLUME_DB`**. Logika w czystej, przetestowanej
     funkcji (`apps/api/src/volume/guard.ts` + testy jednostkowe).
 - **Reverse-engineering protokołu sprzętowego.** Własny klient NAD V2.x ASCII (TCP:23)
-  i klient BluOS (HTTP:11000, parsowanie XML), z fazą „discovery" odpytującą realne
+  i klient modułu streamującego BO (HTTP:11000, parsowanie XML), z fazą „discovery" odpytującą realne
   urządzenie i wykrywaniem dostępnych funkcji (`capabilities.ts`) — różne generacje
   firmware mają różne możliwości.
 - **Świadomy model zagrożeń.** API steruje wzmacniaczem, więc domyślnie nasłuchuje
@@ -50,15 +50,15 @@ realnym wzmacniaczem mocy i głośnikami.
   głośność, tytuł now-playing, tryb odsłuchu + linia sygnału na żywo).
 - **Sterowanie** zasilaniem, źródłem (1–12 z nazwami z urządzenia), wyciszeniem,
   trybem odsłuchu; karta **Signal / jakość** z dekodowania odbiornika (codec,
-  liczba kanałów, sample rate, lock) wzbogacona o dane BluOS.
+  liczba kanałów, sample rate, lock) wzbogacona o dane z modułu streamującego BO.
 - **Guarded volume** — suwak ograniczony do limitu, dochodzenie do celu rampą
   kroków ≤ `MAX_STEP_DB`, każdy jako osobna strzeżona komenda.
-- **Now Playing (BluOS)** — transport, presety, opcjonalny *auto-switch*: gdy ruszy
-  odtwarzanie (np. Spotify), aplikacja włącza odbiornik i przełącza źródło na BluOS —
+- **Now Playing (BO)** — transport, presety, opcjonalny *auto-switch*: gdy ruszy
+  odtwarzanie (np. Spotify), aplikacja włącza odbiornik i przełącza źródło na BO —
   **nigdy nie zmieniając głośności** (G2).
 - **Tuner** (FM/AM, strojenie, presety), **Dźwięk** (tony, bass management, poziomy
   8 głośników, konfiguracja kolumn, parametry surround), **Strefa 2** z własnym capem.
-- **Biblioteka BluOS** z nawigacją i odtwarzaniem jednym dotknięciem oraz eksportem
+- **Biblioteka BO** z nawigacją i odtwarzaniem jednym dotknięciem oraz eksportem
   „listy utworów" (tylko tytuły/wykonawcy — **nigdy audio**) do CSV.
 - **Log użycia** — co grało, jak długo i jak głośno; segmenty liczone z pollingu,
   trwale zapisywane do pliku JSONL.
@@ -70,7 +70,7 @@ realnym wzmacniaczem mocy i głośnikami.
 | Warstwa | Technologie |
 |---|---|
 | Monorepo | pnpm workspaces, Node ≥ 22, TypeScript 5.7, ESLint 10 |
-| Backend (`apps/api`) | Fastify 5, `@fastify/websocket`, `@fastify/cors`, Zod, `fast-xml-parser`; własne klienty TCP (NAD) i HTTP (BluOS) |
+| Backend (`apps/api`) | Fastify 5, `@fastify/websocket`, `@fastify/cors`, Zod, `fast-xml-parser`; własne klienty TCP (NAD) i HTTP (moduł streamujący BO) |
 | Frontend (`apps/web`) | React 18, Vite 6, własne i18n (PL) |
 | Testy | Vitest (logika volume guard + bezpieczeństwo) |
 | Dystrybucja | portable `.exe` (`@yao-pkg/pkg` + esbuild), web osadzony w binarce |
@@ -86,7 +86,7 @@ apps/api
   src/volume/service.ts   jedyna ścieżka ustawiająca głośność
   src/nad/client.ts       klient NAD V2.x (TCP:23)
   src/nad/capabilities.ts wykrywanie funkcji per firmware
-  src/bluos/client.ts     klient BluOS (HTTP:11000)
+  src/stream/client.ts    klient modułu BO (HTTP:11000)
   src/state.ts            polling + stan + alert/watchdog over-cap
   src/server.ts           trasy Fastify + WebSocket
 apps/web                  interfejs React + Vite (zakładkowe menu)

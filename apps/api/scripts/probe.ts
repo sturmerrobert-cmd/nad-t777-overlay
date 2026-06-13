@@ -2,7 +2,7 @@
  * Phase 0 discovery probe for the NAD T 777 V3 overlay.
  *
  * Read-only. Sends only `?` query commands to NAD (never `=`/`+`/`-`), and GETs to
- * BluOS / Dirac. Does NOT change any device state. No volume is ever set here.
+ * streaming module / Dirac. Does NOT change any device state. No volume is ever set here.
  *
  * Usage:
  *   DEVICE_IP=192.168.1.50 pnpm probe
@@ -16,7 +16,7 @@ import net from 'node:net';
 const DEVICE_IP = process.argv[2] ?? process.env.DEVICE_IP ?? '';
 
 const NAD_PORT = 23;
-const BLUOS_PORT = 11000;
+const STREAM_PORT = 11000;
 const DIRAC_PORT = 5006;
 const TIMEOUT_MS = 4000;
 
@@ -107,12 +107,12 @@ async function httpGet(url: string): Promise<{ ok: boolean; sample: string }> {
   }
 }
 
-async function probeBluOS(ip: string): Promise<ProbeResult> {
-  const sync = await httpGet(`http://${ip}:${BLUOS_PORT}/SyncStatus`);
-  const status = sync.ok ? undefined : await httpGet(`http://${ip}:${BLUOS_PORT}/Status`);
+async function probeStream(ip: string): Promise<ProbeResult> {
+  const sync = await httpGet(`http://${ip}:${STREAM_PORT}/SyncStatus`);
+  const status = sync.ok ? undefined : await httpGet(`http://${ip}:${STREAM_PORT}/Status`);
   const result = sync.ok ? sync : (status ?? sync);
   return {
-    iface: `BluOS (HTTP:${BLUOS_PORT})`,
+    iface: `streaming module (HTTP:${STREAM_PORT})`,
     live: result.ok,
     sample: result.sample,
   };
@@ -150,14 +150,14 @@ function printTable(rows: ProbeResult[]): void {
 
 async function main(): Promise<void> {
   console.log(`Probing ${DEVICE_IP} (read-only; timeout ${TIMEOUT_MS}ms per interface)...`);
-  const [nad, bluos, dirac] = await Promise.all([
+  const [nad, stream, dirac] = await Promise.all([
     probeNad(DEVICE_IP),
-    probeBluOS(DEVICE_IP),
+    probeStream(DEVICE_IP),
     probeDirac(DEVICE_IP),
   ]);
-  printTable([nad, bluos, dirac]);
+  printTable([nad, stream, dirac]);
 
-  if (!nad.live && !bluos.live && !dirac.live) {
+  if (!nad.live && !stream.live && !dirac.live) {
     console.log('All three timed out. WSL2 networking checklist:');
     console.log('  1. Confirm the device IP and that it is powered/networked (not in standby-deep-sleep).');
     console.log('  2. From Windows PowerShell, sanity-check:  curl http://' + DEVICE_IP + ':11000/SyncStatus');

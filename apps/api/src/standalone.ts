@@ -6,7 +6,7 @@
  * - Auto-discovers the NAD on the LAN if DEVICE_IP is not configured, and caches
  *   the result back to receiver-hq-config.json.
  * - Serves the built web UI (embedded) + the API from one port, then opens the
- *   browser. NAD/BluOS control behaves exactly as in dev.
+ *   browser. NAD/streaming module control behaves exactly as in dev.
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
@@ -14,7 +14,7 @@ import { dirname, join } from 'node:path';
 import { exec } from 'node:child_process';
 import { loadConfig } from './config.js';
 import { NadClient } from './nad/client.js';
-import { BluOSClient } from './bluos/client.js';
+import { StreamClient } from './stream/client.js';
 import { VolumeService } from './volume/service.js';
 import { UsageLogger } from './usage/logger.js';
 import { TrackLogger } from './tracks/logger.js';
@@ -129,16 +129,16 @@ async function main(): Promise<void> {
 
   const log = () => {};
   const nad = new NadClient({ host: cfg.DEVICE_IP, port: cfg.NAD_PORT });
-  const bluos = new BluOSClient({ host: cfg.DEVICE_IP, port: cfg.BLUOS_PORT });
+  const stream = new StreamClient({ host: cfg.DEVICE_IP, port: cfg.STREAM_PORT });
   const volume = new VolumeService(nad, cfg, log);
   const usage = new UsageLogger(cfg.USAGE_LOG_FILE, log);
   const tracks = new TrackLogger(cfg.TRACKS_LOG_FILE, log);
-  const state = new StateManager(nad, bluos, volume, usage, tracks, cfg, log);
+  const state = new StateManager(nad, stream, volume, usage, tracks, cfg, log);
 
   nad.start();
   state.start();
 
-  const app = await buildServer({ cfg, nad, bluos, volume, usage, tracks, state }, { logger: false });
+  const app = await buildServer({ cfg, nad, stream, volume, usage, tracks, state }, { logger: false });
 
   // Serve the embedded web UI for any non-API GET (SPA fallback to index.html).
   app.get('/*', async (req, reply) => {
