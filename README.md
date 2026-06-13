@@ -11,6 +11,16 @@ realnym wzmacniaczem mocy i głośnikami.
 > Niezależny, nieoficjalny projekt. Niepowiązany z NAD ani Lenbrook Industries.
 > Nazwy „NAD", „BluOS", „Dirac" użyte wyłącznie opisowo (kompatybilność sprzętowa).
 
+## Zrzuty ekranu
+
+| Główne — wyświetlacz VFD | Odtwarzanie (BluOS) |
+|---|---|
+| ![Zakładka Główne z odwzorowaniem wyświetlacza VFD NAD T 777](docs/01-main-vfd.png) | ![Zakładka Odtwarzanie — now-playing BluOS z transportem i presetami](docs/02-now-playing.png) |
+
+| Dźwięk | System |
+|---|---|
+| ![Zakładka Dźwięk — tony, bass management, poziomy głośników](docs/03-sound.png) | ![Zakładka System — dimmer, sleep, CEC/ARC, ustawienia bezpieczeństwa głośności](docs/04-system.png) |
+
 ## Dlaczego ten projekt jest ciekawy inżyniersko
 
 - **Bezpieczeństwo jako kontrakt, nie konwencja.** Dwie twarde gwarancje wymuszone
